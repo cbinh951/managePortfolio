@@ -1,0 +1,4 @@
+portfolio_id,name,asset_id,platform_id,strategy_id,start_date
+PF001,Stock Long Term,A001,P001,S001,2024-01-01
+PF002,Stock Mid Term,A001,P001,S002,2024-03-01
+PF176665292981457,demo,A001,P001,S001,2025-12-24

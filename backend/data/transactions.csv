@@ -1,0 +1,7 @@
+transaction_id,date,type,amount,portfolio_id,cash_account_id,description
+T001,2024-01-05,DEPOSIT,50000000,,CA001,Initial deposit to VCB
+T002,2024-01-10,TRANSFER,-20000000,PF001,CA001,Investment in Stock Long Term
+T003,2024-02-01,DEPOSIT,30000000,,CA001,Monthly savings
+T004,2024-03-05,TRANSFER,-15000000,PF002,CA001,Investment in Stock Mid Term
+T005,2024-04-01,DEPOSIT,25000000,,CA002,MoMo deposit
+T006,2024-05-01,DEPOSIT,20000000,,CA001,Monthly savings

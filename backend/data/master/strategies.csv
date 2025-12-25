@@ -1,0 +1,5 @@
+strategy_id,strategy_name,description
+S001,Long Term,Buy and hold for 5+ years
+S002,Mid Term,Swing trade 6-12 months
+S003,DCA,Monthly dollar cost averaging
+S004,Holding,Cash holding strategy

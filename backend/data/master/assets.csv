@@ -1,0 +1,6 @@
+asset_id,asset_name,asset_type
+A001,Stock,STOCK
+A002,Forex,FOREX
+A003,Gold,GOLD
+A004,Cash,CASH
+A005,demo,STOCK

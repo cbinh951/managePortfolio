@@ -1,0 +1,269 @@
+import axios, { AxiosInstance } from 'axios';
+import {
+    Portfolio,
+    CashAccount,
+    Transaction,
+    Snapshot,
+    PortfolioPerformance,
+    CashBalance,
+    DashboardData,
+    Asset,
+    Platform,
+    Strategy,
+} from '@/types/models';
+import {
+    ApiResponse,
+    CreatePortfolioRequest,
+    CreateCashAccountRequest,
+    CreateTransactionRequest,
+    CreateSnapshotRequest,
+} from '@/types/api';
+
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
+class ApiClient {
+    private client: AxiosInstance;
+
+    constructor() {
+        this.client = axios.create({
+            baseURL: `${API_BASE_URL}/api`,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+    }
+
+    // Dashboard
+    async getDashboard(): Promise<DashboardData> {
+        const response = await this.client.get<ApiResponse<DashboardData>>('/dashboard');
+        console.log("🚀 ~ ApiClient ~ getDashboard ~ response:", response)
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch dashboard data');
+        }
+        return response.data.data;
+    }
+
+    // Portfolios
+    async getPortfolios(): Promise<Portfolio[]> {
+        const response = await this.client.get<ApiResponse<Portfolio[]>>('/portfolios');
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch portfolios');
+        }
+        return response.data.data;
+    }
+
+    async getPortfolio(id: string): Promise<Portfolio> {
+        const response = await this.client.get<ApiResponse<Portfolio>>(`/portfolios/${id}`);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch portfolio');
+        }
+        return response.data.data;
+    }
+
+    async getPortfolioPerformance(id: string): Promise<PortfolioPerformance> {
+        const response = await this.client.get<ApiResponse<PortfolioPerformance>>(
+            `/portfolios/${id}/performance`
+        );
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch portfolio performance');
+        }
+        return response.data.data;
+    }
+
+    async createPortfolio(data: CreatePortfolioRequest): Promise<Portfolio> {
+        const response = await this.client.post<ApiResponse<Portfolio>>('/portfolios', data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to create portfolio');
+        }
+        return response.data.data;
+    }
+
+    async updatePortfolio(id: string, data: { name?: string; platform_id?: string; strategy_id?: string }): Promise<Portfolio> {
+        const response = await this.client.put<ApiResponse<Portfolio>>(`/portfolios/${id}`, data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to update portfolio');
+        }
+        return response.data.data;
+    }
+
+    // Cash Accounts
+    async getCashAccounts(): Promise<CashAccount[]> {
+        const response = await this.client.get<ApiResponse<CashAccount[]>>('/cash-accounts');
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch cash accounts');
+        }
+        return response.data.data;
+    }
+
+    async getCashAccount(id: string): Promise<CashAccount> {
+        const response = await this.client.get<ApiResponse<CashAccount>>(`/cash-accounts/${id}`);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch cash account');
+        }
+        return response.data.data;
+    }
+
+    async getCashAccountBalance(id: string): Promise<CashBalance> {
+        const response = await this.client.get<ApiResponse<CashBalance>>(
+            `/cash-accounts/${id}/balance`
+        );
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch cash balance');
+        }
+        return response.data.data;
+    }
+
+    async createCashAccount(data: CreateCashAccountRequest): Promise<CashAccount> {
+        const response = await this.client.post<ApiResponse<CashAccount>>('/cash-accounts', data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to create cash account');
+        }
+        return response.data.data;
+    }
+
+    async updateCashAccount(id: string, data: { name?: string; platform_id?: string; currency?: string }): Promise<CashAccount> {
+        const response = await this.client.put<ApiResponse<CashAccount>>(`/cash-accounts/${id}`, data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to update cash account');
+        }
+        return response.data.data;
+    }
+
+    // Transactions
+    async getTransactions(): Promise<Transaction[]> {
+        const response = await this.client.get<ApiResponse<Transaction[]>>('/transactions');
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch transactions');
+        }
+        return response.data.data;
+    }
+
+    async getPortfolioTransactions(portfolioId: string): Promise<Transaction[]> {
+        const response = await this.client.get<ApiResponse<Transaction[]>>(
+            `/transactions/portfolio/${portfolioId}`
+        );
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch transactions');
+        }
+        return response.data.data;
+    }
+
+    async getCashAccountTransactions(cashAccountId: string): Promise<Transaction[]> {
+        const response = await this.client.get<ApiResponse<Transaction[]>>(
+            `/transactions/cash/${cashAccountId}`
+        );
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch transactions');
+        }
+        return response.data.data;
+    }
+
+    async createTransaction(data: CreateTransactionRequest): Promise<Transaction> {
+        const response = await this.client.post<ApiResponse<Transaction>>('/transactions', data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to create transaction');
+        }
+        return response.data.data;
+    }
+
+    // Snapshots
+    async getSnapshots(): Promise<Snapshot[]> {
+        const response = await this.client.get<ApiResponse<Snapshot[]>>('/snapshots');
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch snapshots');
+        }
+        return response.data.data;
+    }
+
+    async getPortfolioSnapshots(portfolioId: string): Promise<Snapshot[]> {
+        const response = await this.client.get<ApiResponse<Snapshot[]>>(
+            `/snapshots/portfolio/${portfolioId}`
+        );
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch snapshots');
+        }
+        return response.data.data;
+    }
+
+    async createSnapshot(data: CreateSnapshotRequest): Promise<Snapshot> {
+        const response = await this.client.post<ApiResponse<Snapshot>>('/snapshots', data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to create snapshot');
+        }
+        return response.data.data;
+    }
+
+    // Master Data
+    async getAssets(): Promise<Asset[]> {
+        const response = await this.client.get<ApiResponse<Asset[]>>('/master/assets');
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch assets');
+        }
+        return response.data.data;
+    }
+
+    async getPlatforms(): Promise<Platform[]> {
+        const response = await this.client.get<ApiResponse<Platform[]>>('/master/platforms');
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch platforms');
+        }
+        return response.data.data;
+    }
+
+    async getStrategies(): Promise<Strategy[]> {
+        const response = await this.client.get<ApiResponse<Strategy[]>>('/master/strategies');
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch strategies');
+        }
+        return response.data.data;
+    }
+
+    async createAsset(data: { asset_name: string; asset_type: string }): Promise<Asset> {
+        const response = await this.client.post<ApiResponse<Asset>>('/master/assets', data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to create asset');
+        }
+        return response.data.data;
+    }
+
+    async updateAsset(id: string, data: { asset_name?: string; asset_type?: string }): Promise<Asset> {
+        const response = await this.client.put<ApiResponse<Asset>>(`/master/assets/${id}`, data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to update asset');
+        }
+        return response.data.data;
+    }
+
+    async deleteAsset(id: string): Promise<void> {
+        const response = await this.client.delete<ApiResponse<{ message: string }>>(`/master/assets/${id}`);
+        if (!response.data.success) {
+            throw new Error(response.data.error || 'Failed to delete asset');
+        }
+    }
+
+    async createPlatform(data: { platform_name: string; platform_type: string; asset_id: string }): Promise<Platform> {
+        const response = await this.client.post<ApiResponse<Platform>>('/master/platforms', data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to create platform');
+        }
+        return response.data.data;
+    }
+
+    async updatePlatform(id: string, data: { platform_name?: string; platform_type?: string; asset_id?: string }): Promise<Platform> {
+        const response = await this.client.put<ApiResponse<Platform>>(`/master/platforms/${id}`, data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to update platform');
+        }
+        return response.data.data;
+    }
+
+    async deletePlatform(id: string): Promise<void> {
+        const response = await this.client.delete<ApiResponse<{ message: string }>>(`/master/platforms/${id}`);
+        if (!response.data.success) {
+            throw new Error(response.data.error || 'Failed to delete platform');
+        }
+    }
+}
+
+export const apiClient = new ApiClient();
