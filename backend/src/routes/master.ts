@@ -260,6 +260,7 @@ export function createMasterRoutes(csvService: CsvService): Router {
                 { id: 'platform_id', title: 'platform_id' },
                 { id: 'platform_name', title: 'platform_name' },
                 { id: 'platform_type', title: 'platform_type' },
+                { id: 'asset_id', title: 'asset_id' },
             ]);
 
             const response: ApiResponse<Platform> = {
@@ -380,6 +381,7 @@ export function createMasterRoutes(csvService: CsvService): Router {
                 { id: 'platform_id', title: 'platform_id' },
                 { id: 'platform_name', title: 'platform_name' },
                 { id: 'platform_type', title: 'platform_type' },
+                { id: 'asset_id', title: 'asset_id' },
             ]);
 
             const response: ApiResponse<{ message: string }> = {

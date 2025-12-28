@@ -167,6 +167,21 @@ class ApiClient {
         return response.data.data;
     }
 
+    async updateTransaction(id: string, data: Partial<CreateTransactionRequest>): Promise<Transaction> {
+        const response = await this.client.put<ApiResponse<Transaction>>(`/transactions/${id}`, data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to update transaction');
+        }
+        return response.data.data;
+    }
+
+    async deleteTransaction(id: string): Promise<void> {
+        const response = await this.client.delete<ApiResponse<{ message: string }>>(`/transactions/${id}`);
+        if (!response.data.success) {
+            throw new Error(response.data.error || 'Failed to delete transaction');
+        }
+    }
+
     // Snapshots
     async getSnapshots(): Promise<Snapshot[]> {
         const response = await this.client.get<ApiResponse<Snapshot[]>>('/snapshots');

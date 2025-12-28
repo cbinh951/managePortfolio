@@ -8,6 +8,8 @@ import PlatformTable from '@/components/platforms/PlatformTable';
 import CreatePlatformModal from '@/components/platforms/CreatePlatformModal';
 import EditPlatformModal from '@/components/platforms/EditPlatformModal';
 import DeleteConfirmModal from '@/components/platforms/DeleteConfirmModal';
+import { useSettings } from '@/contexts/SettingsContext';
+import { getCurrencySymbol } from '@/utils/currencyUtils';
 
 const LayersIcon = () => (
     <svg className="w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,6 +32,7 @@ const DollarIcon = () => (
 type FilterType = 'ALL' | 'BROKER' | 'BANK' | 'WALLET';
 
 export default function PlatformsPage() {
+    const { settings } = useSettings();
     const [platforms, setPlatforms] = useState<Platform[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedType, setSelectedType] = useState<FilterType>('ALL');
@@ -128,7 +131,7 @@ export default function PlatformsPage() {
                     />
                     <PlatformCard
                         title="Total Assets"
-                        value={loading ? '...' : '$0.00'}
+                        value={loading ? '...' : `${getCurrencySymbol(settings.displayCurrency)}0.00`}
                         subtitle="Across all platforms"
                         icon={<DollarIcon />}
                         iconBg="bg-slate-700/30"

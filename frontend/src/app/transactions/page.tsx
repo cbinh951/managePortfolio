@@ -7,13 +7,21 @@ import MetricCard from '@/components/portfolio/MetricCard';
 import TransactionFilters from '@/components/transaction/TransactionFilters';
 import TransactionTable from '@/components/transaction/TransactionTable';
 import AddTransactionModal from '@/components/transaction/AddTransactionModal';
+import EditTransactionModal from '@/components/transaction/EditTransactionModal';
+import DeleteTransactionModal from '@/components/transaction/DeleteTransactionModal';
+import { useSettings } from '@/contexts/SettingsContext';
+import { formatCurrency } from '@/utils/currencyUtils';
 
 export default function TransactionsPage() {
+    const { settings } = useSettings();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
     const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
     // Filters
     const [selectedPortfolio, setSelectedPortfolio] = useState('all');
@@ -50,6 +58,20 @@ export default function TransactionsPage() {
         setSelectedPortfolio('all');
         setSelectedDateRange('all');
         setSelectedType('all');
+    };
+
+    const handleEditClick = (transaction: Transaction) => {
+        setSelectedTransaction(transaction);
+        setIsEditModalOpen(true);
+    };
+
+    const handleDeleteClick = (transaction: Transaction) => {
+        setSelectedTransaction(transaction);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleDelete = async (id: string) => {
+        await apiClient.deleteTransaction(id);
     };
 
     // Filter transactions
@@ -130,7 +152,7 @@ export default function TransactionsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <MetricCard
                         label="TOTAL INFLOW"
-                        value={`$${totalInflow.toLocaleString()}`}
+                        value={formatCurrency(totalInflow, 'VND', settings.displayCurrency, settings.exchangeRate)}
                         change={12}
                         trend="up"
                         valueColor="text-emerald-400"
@@ -142,7 +164,7 @@ export default function TransactionsPage() {
                     />
                     <MetricCard
                         label="TOTAL OUTFLOW"
-                        value={`$${totalOutflow.toLocaleString()}`}
+                        value={formatCurrency(totalOutflow, 'VND', settings.displayCurrency, settings.exchangeRate)}
                         change={-8}
                         trend="down"
                         valueColor="text-red-400"
@@ -177,6 +199,8 @@ export default function TransactionsPage() {
                     <TransactionTable
                         transactions={filteredTransactions}
                         portfolios={allPortfoliosAndAccounts}
+                        onEdit={handleEditClick}
+                        onDelete={handleDeleteClick}
                     />
                 )}
             </div>
@@ -186,6 +210,29 @@ export default function TransactionsPage() {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={handleCreateSuccess}
+            />
+
+            {/* Edit Transaction Modal */}
+            <EditTransactionModal
+                isOpen={isEditModalOpen}
+                transaction={selectedTransaction}
+                onClose={() => {
+                    setIsEditModalOpen(false);
+                    setSelectedTransaction(null);
+                }}
+                onSuccess={handleCreateSuccess}
+            />
+
+            {/* Delete Transaction Modal */}
+            <DeleteTransactionModal
+                isOpen={isDeleteModalOpen}
+                transaction={selectedTransaction}
+                onClose={() => {
+                    setIsDeleteModalOpen(false);
+                    setSelectedTransaction(null);
+                }}
+                onSuccess={handleCreateSuccess}
+                onDelete={handleDelete}
             />
         </main>
     );

@@ -129,26 +129,12 @@ export default function AssetTypesPage() {
                 </div>
 
                 {/* Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8">
                     <AssetTypeCard
                         title="Total Asset Types"
                         value={loading ? '...' : assets.length}
                         subtitle="+2 this month"
                         icon={<LayersIcon />}
-                        iconBg="bg-slate-700/30"
-                    />
-                    <AssetTypeCard
-                        title="Active Categories"
-                        value={loading ? '...' : activeCategories}
-                        subtitle="Across global markets"
-                        icon={<GridIcon />}
-                        iconBg="bg-slate-700/30"
-                    />
-                    <AssetTypeCard
-                        title="Active Integrations"
-                        value={loading ? '...' : platforms.length}
-                        subtitle="Systems operational"
-                        icon={<PlugIcon />}
                         iconBg="bg-slate-700/30"
                     />
                 </div>

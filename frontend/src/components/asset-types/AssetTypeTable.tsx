@@ -50,20 +50,7 @@ const getAssetIcon = (assetType: string) => {
     }
 };
 
-const getValuationMethod = (assetType: string) => {
-    switch (assetType) {
-        case 'CASH':
-            return { method: 'Manual Input', icon: '✍️' };
-        case 'STOCK':
-            return { method: 'Plaid Integration', icon: '🔗' };
-        case 'GOLD':
-            return { method: 'Live Market Price', icon: '⚡' };
-        case 'FOREX':
-            return { method: 'Coinbase API', icon: '🔵' };
-        default:
-            return { method: 'Manual Input', icon: '✍️' };
-    }
-};
+
 
 export default function AssetTypeTable({ assets, onEdit, onDelete, onViewDetails }: AssetTypeTableProps) {
     const [searchQuery, setSearchQuery] = useState('');
@@ -127,23 +114,13 @@ export default function AssetTypeTable({ assets, onEdit, onDelete, onViewDetails
                             <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                                 Category
                             </th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                                Valuation Method
-                            </th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                                Last Updated
-                            </th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                                Status
-                            </th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            <th className="px-6 py-4 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                                 Actions
                             </th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/30">
                         {filteredAssets.map((asset) => {
-                            const valuation = getValuationMethod(asset.asset_type);
                             return (
                                 <tr
                                     key={asset.asset_id}
@@ -167,23 +144,8 @@ export default function AssetTypeTable({ assets, onEdit, onDelete, onViewDetails
                                             {asset.asset_type}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm">{valuation.icon}</span>
-                                            <span className="text-sm text-slate-300">{valuation.method}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
-                                        Today, 10:00 AM
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                                            Active
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        <div className="flex items-center gap-2">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
+                                        <div className="flex items-center justify-end gap-2">
                                             {onViewDetails && (
                                                 <button
                                                     onClick={() => onViewDetails(asset)}
@@ -237,27 +199,6 @@ export default function AssetTypeTable({ assets, onEdit, onDelete, onViewDetails
                         </button>
                     )}
                 </p>
-                <div className="flex items-center gap-2">
-                    <button className="px-3 py-1.5 bg-slate-700/30 border border-slate-700/50 rounded text-sm text-slate-400 hover:bg-slate-700/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                    </button>
-                    <button className="px-3 py-1.5 bg-blue-600 border border-blue-600 rounded text-sm text-white font-medium">
-                        1
-                    </button>
-                    <button className="px-3 py-1.5 bg-slate-700/30 border border-slate-700/50 rounded text-sm text-slate-400 hover:bg-slate-700/50 transition-colors">
-                        2
-                    </button>
-                    <button className="px-3 py-1.5 bg-slate-700/30 border border-slate-700/50 rounded text-sm text-slate-400 hover:bg-slate-700/50 transition-colors">
-                        3
-                    </button>
-                    <button className="px-3 py-1.5 bg-slate-700/30 border border-slate-700/50 rounded text-sm text-slate-400 hover:bg-slate-700/50 transition-colors">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                    </button>
-                </div>
             </div>
         </div>
     );

@@ -5,6 +5,8 @@ import { apiClient } from '@/services/api';
 import PortfolioTable from '@/components/portfolio/PortfolioTable';
 import KPICard from '@/components/common/KPICard';
 import CreatePortfolioModal from '@/components/portfolio/CreatePortfolioModal';
+import { useSettings } from '@/contexts/SettingsContext';
+import { formatCurrency } from '@/utils/currencyUtils';
 
 // Icons
 const TrendUpIcon = () => (
@@ -40,6 +42,7 @@ interface PortfolioData {
 }
 
 export default function PortfoliosPage() {
+    const { settings } = useSettings();
     const [data, setData] = useState<PortfolioData>({
         rows: [],
         totalNetWorth: 0,
@@ -56,23 +59,31 @@ export default function PortfoliosPage() {
     const loadPortfoliosData = async () => {
         try {
             setLoading(true);
-            const dashboardData = await apiClient.getDashboard();
-            const portfolios = await apiClient.getPortfolios();
-            const cashAccounts = await apiClient.getCashAccounts();
+            const [dashboardData, portfolios, cashAccounts, assets, platforms, strategies] = await Promise.all([
+                apiClient.getDashboard(),
+                apiClient.getPortfolios(),
+                apiClient.getCashAccounts(),
+                apiClient.getAssets(),
+                apiClient.getPlatforms(),
+                apiClient.getStrategies(),
+            ]);
 
             const rows: PortfolioRow[] = [];
 
             // Add investment portfolios
             for (const portfolio of portfolios) {
                 const performance = dashboardData.portfolios.find(p => p.portfolio_id === portfolio.portfolio_id);
+                const asset = assets.find(a => a.asset_id === portfolio.asset_id);
+                const platform = platforms.find(p => p.platform_id === portfolio.platform_id);
+                const strategy = strategies.find(s => s.strategy_id === portfolio.strategy_id);
 
                 rows.push({
                     id: portfolio.portfolio_id,
                     name: portfolio.name,
                     idBadge: `#${portfolio.portfolio_id}`,
-                    assetType: portfolio.asset_id === 'A001' ? 'STOCK' : portfolio.asset_id === 'A003' ? 'GOLD' : 'FOREX',
-                    platform: portfolio.platform_id === 'P001' ? 'SSI' : portfolio.platform_id === 'P002' ? 'VCB' : 'MoMo',
-                    strategy: portfolio.strategy_id === 'S001' ? 'Long Term' : portfolio.strategy_id === 'S002' ? 'Mid Term' : 'DCA',
+                    assetType: asset?.asset_type || 'UNKNOWN',
+                    platform: platform?.platform_name || 'Unknown',
+                    strategy: strategy?.strategy_name || 'Unknown',
                     balance: performance?.current_nav || 0,
                     profit: performance?.profit || 0,
                     profitPercentage: performance?.profit_percentage || 0,
@@ -83,13 +94,14 @@ export default function PortfoliosPage() {
             // Add cash accounts
             for (const cashAccount of cashAccounts) {
                 const balance = dashboardData.cash_accounts.find(c => c.cash_account_id === cashAccount.cash_account_id);
+                const platform = platforms.find(p => p.platform_id === cashAccount.platform_id);
 
                 rows.push({
                     id: cashAccount.cash_account_id,
                     name: cashAccount.name,
                     idBadge: `#${cashAccount.cash_account_id}`,
                     assetType: 'CASH',
-                    platform: cashAccount.platform_id === 'P002' ? 'VCB' : cashAccount.platform_id === 'P003' ? 'MoMo' : 'SSI',
+                    platform: platform?.platform_name || 'Unknown',
                     strategy: 'Holding',
                     balance: balance?.balance || 0,
                     profit: 0,
@@ -143,14 +155,14 @@ export default function PortfoliosPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <KPICard
                         title="Total Net Worth"
-                        value={`$${data.totalNetWorth.toLocaleString()}`}
+                        value={formatCurrency(data.totalNetWorth, 'VND', settings.displayCurrency, settings.exchangeRate)}
                         change={5.2}
                         icon={<TrendUpIcon />}
                         iconBg="bg-emerald-500/10"
                     />
                     <KPICard
                         title="Total Profit/Loss"
-                        value={`$${data.totalProfit.toLocaleString()}`}
+                        value={formatCurrency(data.totalProfit, 'VND', settings.displayCurrency, settings.exchangeRate)}
                         change={6.4}
                         icon={<TrendUpIcon />}
                         iconBg="bg-emerald-500/10"

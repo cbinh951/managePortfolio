@@ -1,9 +1,13 @@
 import { Transaction, Portfolio, CashAccount } from '@/types/models';
+import { useSettings } from '@/contexts/SettingsContext';
+import { formatCurrency } from '@/utils/currencyUtils';
 
 interface TransactionTableProps {
     transactions: Transaction[];
     portfolios: (Portfolio | CashAccount)[];
     loading?: boolean;
+    onEdit?: (transaction: Transaction) => void;
+    onDelete?: (transaction: Transaction) => void;
 }
 
 const transactionTypeColors: Record<string, string> = {
@@ -15,7 +19,9 @@ const transactionTypeColors: Record<string, string> = {
     FEE: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
 };
 
-export default function TransactionTable({ transactions, portfolios, loading = false }: TransactionTableProps) {
+export default function TransactionTable({ transactions, portfolios, loading = false, onEdit, onDelete }: TransactionTableProps) {
+    const { settings } = useSettings();
+
     if (loading) {
         return (
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-8">
@@ -89,6 +95,11 @@ export default function TransactionTable({ transactions, portfolios, loading = f
                             <th className="text-right py-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                 Amount
                             </th>
+                            {(onEdit || onDelete) && (
+                                <th className="text-right py-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            )}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/50">
@@ -119,11 +130,36 @@ export default function TransactionTable({ transactions, portfolios, loading = f
                                     {transaction.description || '-'}
                                 </td>
                                 <td className={`py-4 px-6 text-sm font-semibold text-right ${getAmountColor(transaction)}`}>
-                                    {getAmountPrefix(transaction)}${Math.abs(transaction.amount).toLocaleString(undefined, {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                    })}
+                                    {getAmountPrefix(transaction)}{formatCurrency(Math.abs(transaction.amount), 'VND', settings.displayCurrency, settings.exchangeRate)}
                                 </td>
+                                {(onEdit || onDelete) && (
+                                    <td className="py-4 px-6 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                            {onEdit && (
+                                                <button
+                                                    onClick={() => onEdit(transaction)}
+                                                    className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all"
+                                                    title="Edit transaction"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                </button>
+                                            )}
+                                            {onDelete && (
+                                                <button
+                                                    onClick={() => onDelete(transaction)}
+                                                    className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                                                    title="Delete transaction"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
+                                )}
                             </tr>
                         ))}
                     </tbody>

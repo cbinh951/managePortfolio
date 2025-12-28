@@ -1,7 +1,3 @@
 platform_id,platform_name,platform_type,asset_id
-P001,SSI,BROKER,A001
-P002,Vietcombank,BANK,A004
-P003,MoMo,WALLET,A003
-P004,Fidelity,BROKER,A001
-P005,Chase Bank,BANK,A004
-P006,TD Ameritrade,BROKER,A001
+P003,SSI,BROKER,A001
+P004,BANK,BANK,A003

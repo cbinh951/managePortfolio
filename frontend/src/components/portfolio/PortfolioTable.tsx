@@ -14,12 +14,15 @@ import {
 import Link from 'next/link';
 import AssetTypeBadge from '@/components/common/AssetTypeBadge';
 import type { PortfolioRow } from '@/app/portfolios/page';
+import { useSettings } from '@/contexts/SettingsContext';
+import { formatCurrency } from '@/utils/currencyUtils';
 
 interface PortfolioTableProps {
     data: PortfolioRow[];
 }
 
 export default function PortfolioTable({ data }: PortfolioTableProps) {
+    const { settings } = useSettings();
     const [sorting, setSorting] = useState<SortingState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
 
@@ -60,7 +63,7 @@ export default function PortfolioTable({ data }: PortfolioTableProps) {
             header: 'Balance',
             cell: ({ row }) => (
                 <span className="font-semibold text-white">
-                    ${row.original.balance.toLocaleString()}
+                    {formatCurrency(row.original.balance, 'VND', settings.displayCurrency, settings.exchangeRate)}
                 </span>
             ),
         },
@@ -74,7 +77,7 @@ export default function PortfolioTable({ data }: PortfolioTableProps) {
                 ) : (
                     <div>
                         <div className={`font-semibold ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {isProfit ? '+' : ''}${row.original.profit.toLocaleString()}
+                            {isProfit ? '+' : ''}{formatCurrency(Math.abs(row.original.profit), 'VND', settings.displayCurrency, settings.exchangeRate)}
                         </div>
                         <div className={`text-xs ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
                             {isProfit ? '+' : ''}{row.original.profitPercentage.toFixed(2)}%

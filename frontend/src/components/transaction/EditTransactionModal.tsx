@@ -2,28 +2,30 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/services/api';
-import { Portfolio, CashAccount } from '@/types/models';
+import { Portfolio, CashAccount, Transaction } from '@/types/models';
 import { useSettings } from '@/contexts/SettingsContext';
 import { getCurrencySymbol } from '@/utils/currencyUtils';
 
-interface AddTransactionModalProps {
+interface EditTransactionModalProps {
     isOpen: boolean;
+    transaction: Transaction | null;
     onClose: () => void;
     onSuccess: () => void;
 }
 
-export default function AddTransactionModal({
+export default function EditTransactionModal({
     isOpen,
+    transaction,
     onClose,
     onSuccess,
-}: AddTransactionModalProps) {
+}: EditTransactionModalProps) {
     const { settings } = useSettings();
+
     // Form state
     const [formData, setFormData] = useState({
-        transactionDirection: 'inflow', // 'inflow' or 'outflow'
-        type: 'DEPOSIT',
+        type: '',
         amount: '',
-        date: new Date().toISOString().split('T')[0],
+        date: '',
         portfolio_id: '',
         cash_account_id: '',
         description: '',
@@ -37,7 +39,6 @@ export default function AddTransactionModal({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [loadingData, setLoadingData] = useState(true);
-    const [selectedAccountType, setSelectedAccountType] = useState<'portfolio' | 'cash'>('portfolio');
 
     // Load portfolios and cash accounts
     useEffect(() => {
@@ -45,6 +46,20 @@ export default function AddTransactionModal({
             loadData();
         }
     }, [isOpen]);
+
+    // Populate form when transaction changes
+    useEffect(() => {
+        if (transaction) {
+            setFormData({
+                type: transaction.type,
+                amount: transaction.amount.toString(),
+                date: transaction.date,
+                portfolio_id: transaction.portfolio_id || '',
+                cash_account_id: transaction.cash_account_id || '',
+                description: transaction.description || '',
+            });
+        }
+    }, [transaction]);
 
     const loadData = async () => {
         try {
@@ -55,11 +70,6 @@ export default function AddTransactionModal({
             ]);
             setPortfolios(portfoliosData);
             setCashAccounts(cashAccountsData);
-
-            // Set default selection
-            if (portfoliosData.length > 0) {
-                setFormData(prev => ({ ...prev, portfolio_id: portfoliosData[0].portfolio_id }));
-            }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load data');
         } finally {
@@ -67,34 +77,9 @@ export default function AddTransactionModal({
         }
     };
 
-    const handleDirectionChange = (direction: 'inflow' | 'outflow') => {
-        setFormData(prev => ({
-            ...prev,
-            transactionDirection: direction,
-            type: direction === 'inflow' ? 'DEPOSIT' : 'WITHDRAW',
-        }));
-    };
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleAccountTypeChange = (type: 'portfolio' | 'cash') => {
-        setSelectedAccountType(type);
-        if (type === 'portfolio' && portfolios.length > 0) {
-            setFormData(prev => ({
-                ...prev,
-                portfolio_id: portfolios[0].portfolio_id,
-                cash_account_id: '',
-            }));
-        } else if (type === 'cash' && cashAccounts.length > 0) {
-            setFormData(prev => ({
-                ...prev,
-                cash_account_id: cashAccounts[0].cash_account_id,
-                portfolio_id: '',
-            }));
-        }
     };
 
     const validateForm = (): string | null => {
@@ -113,6 +98,8 @@ export default function AddTransactionModal({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (!transaction) return;
+
         const validationError = validateForm();
         if (validationError) {
             setError(validationError);
@@ -123,66 +110,39 @@ export default function AddTransactionModal({
             setLoading(true);
             setError(null);
 
-            await apiClient.createTransaction({
+            await apiClient.updateTransaction(transaction.transaction_id, {
                 date: formData.date,
-                type: formData.type,
+                type: formData.type as any,
                 amount: parseFloat(formData.amount),
                 portfolio_id: formData.portfolio_id || undefined,
                 cash_account_id: formData.cash_account_id || undefined,
                 description: formData.description || undefined,
             });
 
-            // Reset form
-            setFormData({
-                transactionDirection: 'inflow',
-                type: 'DEPOSIT',
-                amount: '',
-                date: new Date().toISOString().split('T')[0],
-                portfolio_id: portfolios.length > 0 ? portfolios[0].portfolio_id : '',
-                cash_account_id: '',
-                description: '',
-            });
-            setSelectedAccountType('portfolio');
-
             onSuccess();
             onClose();
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to create transaction');
+            setError(err instanceof Error ? err.message : 'Failed to update transaction');
         } finally {
             setLoading(false);
         }
     };
 
     const handleCancel = () => {
-        setFormData({
-            transactionDirection: 'inflow',
-            type: 'DEPOSIT',
-            amount: '',
-            date: new Date().toISOString().split('T')[0],
-            portfolio_id: portfolios.length > 0 ? portfolios[0].portfolio_id : '',
-            cash_account_id: '',
-            description: '',
-        });
-        setSelectedAccountType('portfolio');
         setError(null);
         onClose();
     };
 
-    if (!isOpen) return null;
+    if (!isOpen || !transaction) return null;
 
-    const inflowTypes = [
+    const transactionTypes = [
         { value: 'DEPOSIT', label: 'Deposit' },
-        { value: 'SELL', label: 'Sell' },
-    ];
-
-    const outflowTypes = [
         { value: 'WITHDRAW', label: 'Withdraw' },
         { value: 'BUY', label: 'Buy' },
+        { value: 'SELL', label: 'Sell' },
         { value: 'FEE', label: 'Fee' },
         { value: 'TRANSFER', label: 'Transfer' },
     ];
-
-    const availableTypes = formData.transactionDirection === 'inflow' ? inflowTypes : outflowTypes;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -190,7 +150,7 @@ export default function AddTransactionModal({
                 {/* Header */}
                 <div className="sticky top-0 bg-slate-900 border-b border-slate-700 px-6 py-4">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-bold text-white">New Transaction</h2>
+                        <h2 className="text-2xl font-bold text-white">Edit Transaction</h2>
                         <button
                             onClick={handleCancel}
                             className="text-slate-400 hover:text-white transition-colors"
@@ -218,35 +178,6 @@ export default function AddTransactionModal({
                         </div>
                     ) : (
                         <>
-                            {/* Transaction Direction Toggle */}
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                    Transaction Direction
-                                </label>
-                                <div className="inline-flex rounded-lg bg-slate-800 p-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDirectionChange('inflow')}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${formData.transactionDirection === 'inflow'
-                                            ? 'bg-emerald-600 text-white'
-                                            : 'text-slate-400 hover:text-white'
-                                            }`}
-                                    >
-                                        Inflow (Deposit)
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDirectionChange('outflow')}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${formData.transactionDirection === 'outflow'
-                                            ? 'bg-red-600 text-white'
-                                            : 'text-slate-400 hover:text-white'
-                                            }`}
-                                    >
-                                        Outflow (Expense)
-                                    </button>
-                                </div>
-                            </div>
-
                             {/* Amount and Date */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -286,99 +217,69 @@ export default function AddTransactionModal({
                                 </div>
                             </div>
 
-                            {/* Account Type Toggle */}
+                            {/* Transaction Type */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                    Account Type
+                                <label htmlFor="type" className="block text-sm font-medium text-slate-300 mb-2">
+                                    Transaction Type <span className="text-red-400">*</span>
                                 </label>
-                                <div className="inline-flex rounded-lg bg-slate-800 p-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleAccountTypeChange('portfolio')}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedAccountType === 'portfolio'
-                                            ? 'bg-blue-600 text-white'
-                                            : 'text-slate-400 hover:text-white'
-                                            }`}
-                                    >
-                                        Portfolio
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleAccountTypeChange('cash')}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${selectedAccountType === 'cash'
-                                            ? 'bg-blue-600 text-white'
-                                            : 'text-slate-400 hover:text-white'
-                                            }`}
-                                    >
-                                        Cash Account
-                                    </button>
-                                </div>
+                                <select
+                                    id="type"
+                                    name="type"
+                                    value={formData.type}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                    disabled={loading}
+                                >
+                                    {transactionTypes.map((type) => (
+                                        <option key={type.value} value={type.value}>
+                                            {type.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
-                            {/* Portfolio/Cash Account and Transaction Type */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="account" className="block text-sm font-medium text-slate-300 mb-2">
-                                        {selectedAccountType === 'portfolio' ? 'Portfolio' : 'Cash Account'} <span className="text-red-400">*</span>
-                                    </label>
-                                    {selectedAccountType === 'portfolio' ? (
-                                        <select
-                                            id="account"
-                                            name="portfolio_id"
-                                            value={formData.portfolio_id}
-                                            onChange={handleChange}
-                                            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                            disabled={loading}
-                                        >
-                                            {portfolios.map((portfolio) => (
-                                                <option key={portfolio.portfolio_id} value={portfolio.portfolio_id}>
-                                                    {portfolio.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    ) : (
-                                        <select
-                                            id="account"
-                                            name="cash_account_id"
-                                            value={formData.cash_account_id}
-                                            onChange={handleChange}
-                                            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                            disabled={loading}
-                                        >
-                                            {cashAccounts.map((account) => (
-                                                <option key={account.cash_account_id} value={account.cash_account_id}>
-                                                    {account.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label htmlFor="type" className="block text-sm font-medium text-slate-300 mb-2">
-                                        Transaction Type
-                                    </label>
+                            {/* Portfolio/Cash Account */}
+                            <div>
+                                <label htmlFor="account" className="block text-sm font-medium text-slate-300 mb-2">
+                                    {formData.portfolio_id ? 'Portfolio' : 'Cash Account'} <span className="text-red-400">*</span>
+                                </label>
+                                {formData.portfolio_id ? (
                                     <select
-                                        id="type"
-                                        name="type"
-                                        value={formData.type}
+                                        id="account"
+                                        name="portfolio_id"
+                                        value={formData.portfolio_id}
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                                         disabled={loading}
                                     >
-                                        {availableTypes.map((type) => (
-                                            <option key={type.value} value={type.value}>
-                                                {type.label}
+                                        {portfolios.map((portfolio) => (
+                                            <option key={portfolio.portfolio_id} value={portfolio.portfolio_id}>
+                                                {portfolio.name}
                                             </option>
                                         ))}
                                     </select>
-                                </div>
+                                ) : (
+                                    <select
+                                        id="account"
+                                        name="cash_account_id"
+                                        value={formData.cash_account_id}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                        disabled={loading}
+                                    >
+                                        {cashAccounts.map((account) => (
+                                            <option key={account.cash_account_id} value={account.cash_account_id}>
+                                                {account.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
 
-                            {/* Asset/Description */}
+                            {/* Description */}
                             <div>
                                 <label htmlFor="description" className="block text-sm font-medium text-slate-300 mb-2">
-                                    Asset / Description <span className="text-slate-500 text-xs">(Optional)</span>
+                                    Description <span className="text-slate-500 text-xs">(Optional)</span>
                                 </label>
                                 <input
                                     type="text"
@@ -420,7 +321,7 @@ export default function AddTransactionModal({
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                 </svg>
-                                Save Transaction
+                                Save Changes
                             </>
                         )}
                     </button>

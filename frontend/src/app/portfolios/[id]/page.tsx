@@ -13,6 +13,11 @@ import SnapshotsTab from '@/components/portfolio/SnapshotsTab';
 import PerformanceTab from '@/components/portfolio/PerformanceTab';
 import EditPortfolioModal from '@/components/portfolio/EditPortfolioModal';
 import AddTransactionModal from '@/components/portfolio/AddTransactionModal';
+import EditTransactionModal from '@/components/transaction/EditTransactionModal';
+import DeleteTransactionModal from '@/components/transaction/DeleteTransactionModal';
+import { useSettings } from '@/contexts/SettingsContext';
+import { formatCurrency } from '@/utils/currencyUtils';
+
 
 interface PortfolioDetailData {
     type: 'portfolio' | 'cash';
@@ -28,6 +33,7 @@ interface PortfolioDetailData {
 export default function PortfolioDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
+    const { settings } = useSettings();
 
     const [data, setData] = useState<PortfolioDetailData | null>(null);
     const [loading, setLoading] = useState(true);
@@ -36,6 +42,9 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
     const [refreshing, setRefreshing] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isAddTransactionModalOpen, setIsAddTransactionModalOpen] = useState(false);
+    const [isEditTransactionModalOpen, setIsEditTransactionModalOpen] = useState(false);
+    const [isDeleteTransactionModalOpen, setIsDeleteTransactionModalOpen] = useState(false);
+    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
     useEffect(() => {
         loadPortfolioData();
@@ -105,6 +114,32 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
     const handleTransactionSuccess = () => {
         loadPortfolioData();
         setIsAddTransactionModalOpen(false);
+    };
+
+    const handleEditTransactionClick = (transaction: Transaction) => {
+        setSelectedTransaction(transaction);
+        setIsEditTransactionModalOpen(true);
+    };
+
+    const handleDeleteTransactionClick = (transaction: Transaction) => {
+        setSelectedTransaction(transaction);
+        setIsDeleteTransactionModalOpen(true);
+    };
+
+    const handleEditTransactionSuccess = () => {
+        loadPortfolioData();
+        setIsEditTransactionModalOpen(false);
+        setSelectedTransaction(null);
+    };
+
+    const handleDeleteTransactionSuccess = () => {
+        loadPortfolioData();
+        setIsDeleteTransactionModalOpen(false);
+        setSelectedTransaction(null);
+    };
+
+    const handleDeleteTransaction = async (id: string) => {
+        await apiClient.deleteTransaction(id);
     };
 
     if (loading) {
@@ -185,15 +220,6 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={handleAddTransactionClick}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            Add Transaction
-                        </button>
-                        <button
                             onClick={handleEditClick}
                             className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
                         >
@@ -217,19 +243,19 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                 <div className={`grid grid-cols-1 ${isPortfolio ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-6 mb-8`}>
                     <MetricCard
                         label={isPortfolio ? 'CURRENT NAV' : 'CURRENT BALANCE'}
-                        value={`$${currentBalance.toLocaleString()}`}
+                        value={formatCurrency(currentBalance, 'VND', settings.displayCurrency, settings.exchangeRate)}
                         valueColor="text-white"
                     />
                     {isPortfolio && (
                         <MetricCard
                             label="TOTAL INVESTED"
-                            value={`$${totalInvested.toLocaleString()}`}
+                            value={formatCurrency(totalInvested, 'VND', settings.displayCurrency, settings.exchangeRate)}
                             valueColor="text-slate-300"
                         />
                     )}
                     <MetricCard
                         label="TOTAL PROFIT"
-                        value={`$${profit.toLocaleString()}`}
+                        value={formatCurrency(profit, 'VND', settings.displayCurrency, settings.exchangeRate)}
                         change={profitPercentage}
                         trend={profit >= 0 ? 'up' : 'down'}
                         valueColor={profit >= 0 ? 'text-emerald-400' : 'text-red-400'}
@@ -252,10 +278,19 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                 {/* Tab Content */}
                 <div className="min-h-96">
                     {activeTab === 'overview' && (
-                        <OverviewTab portfolioName={data.name} />
+                        <OverviewTab
+                            portfolioName={data.name}
+                            snapshots={data.snapshots}
+                            transactions={data.transactions}
+                        />
                     )}
                     {activeTab === 'transactions' && (
-                        <TransactionsTab transactions={data.transactions} />
+                        <TransactionsTab
+                            transactions={data.transactions}
+                            onEdit={handleEditTransactionClick}
+                            onDelete={handleDeleteTransactionClick}
+                            onAddTransaction={handleAddTransactionClick}
+                        />
                     )}
                     {activeTab === 'snapshots' && isPortfolio && (
                         <SnapshotsTab snapshots={data.snapshots} portfolioId={id} />
@@ -264,6 +299,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                         <PerformanceTab
                             xirr={xirr}
                             totalReturn={profitPercentage}
+                            snapshots={data.snapshots}
                         />
                     )}
                 </div>
@@ -277,9 +313,10 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                             : ({
                                 portfolio_id: id,
                                 name: data.cashAccount?.name || '',
+                                asset_id: data.cashAccount?.platform_id || '', // Using platform_id as fallback
                                 platform_id: data.cashAccount?.platform_id || '',
                                 strategy_id: '',
-                                portfolio_type: 'CASH' as any,
+                                start_date: new Date().toISOString().split('T')[0],
                             } as Portfolio)
                     }
                     onClose={() => setIsEditModalOpen(false)}
@@ -292,6 +329,27 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                     cashAccountId={!isPortfolio ? id : undefined}
                     onClose={() => setIsAddTransactionModalOpen(false)}
                     onSuccess={handleTransactionSuccess}
+                />
+
+                <EditTransactionModal
+                    isOpen={isEditTransactionModalOpen}
+                    transaction={selectedTransaction}
+                    onClose={() => {
+                        setIsEditTransactionModalOpen(false);
+                        setSelectedTransaction(null);
+                    }}
+                    onSuccess={handleEditTransactionSuccess}
+                />
+
+                <DeleteTransactionModal
+                    isOpen={isDeleteTransactionModalOpen}
+                    transaction={selectedTransaction}
+                    onClose={() => {
+                        setIsDeleteTransactionModalOpen(false);
+                        setSelectedTransaction(null);
+                    }}
+                    onSuccess={handleDeleteTransactionSuccess}
+                    onDelete={handleDeleteTransaction}
                 />
             </div>
         </main>
