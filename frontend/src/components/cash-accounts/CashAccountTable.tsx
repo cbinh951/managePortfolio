@@ -6,8 +6,14 @@ import { CashAccount } from '@/types/models';
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatCurrency } from '@/utils/currencyUtils';
 
+interface CashAccountWithBalance extends CashAccount {
+    balance: number;
+    platform_name: string;
+    platform_type: string;
+}
+
 interface CashAccountTableProps {
-    accounts: CashAccount[];
+    accounts: CashAccountWithBalance[];
 }
 
 export default function CashAccountTable({ accounts }: CashAccountTableProps) {
@@ -29,7 +35,7 @@ export default function CashAccountTable({ accounts }: CashAccountTableProps) {
 
     // Calculate total balance in display currency
     const totalBalance = useMemo(() => {
-        const total = filteredAccounts.reduce((sum, account) => sum + account.balance, 0);
+        const total = filteredAccounts.reduce((sum, account) => sum + (account.balance || 0), 0);
         return formatCurrency(total, 'VND', settings.displayCurrency, settings.exchangeRate);
     }, [filteredAccounts, settings.displayCurrency, settings.exchangeRate]);
 

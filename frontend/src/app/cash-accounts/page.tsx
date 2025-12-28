@@ -91,7 +91,7 @@ export default function CashAccountsPage() {
     };
 
     // Calculate totals
-    const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+    const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
     const bankAccounts = accounts.filter(a => a.platform_type === 'BANK').length;
     const walletAccounts = accounts.filter(a => a.platform_type === 'WALLET').length;
 
@@ -141,7 +141,6 @@ export default function CashAccountsPage() {
                     <KPICard
                         title="Bank Accounts"
                         value={bankAccounts}
-                        subtitle={`${bankAccounts} linked`}
                         icon={<BankIcon />}
                         iconBg="bg-blue-500/10"
                         valueColor="text-blue-400"
@@ -149,7 +148,6 @@ export default function CashAccountsPage() {
                     <KPICard
                         title="Digital Wallets"
                         value={walletAccounts}
-                        subtitle={`${walletAccounts} connected`}
                         icon={<WalletIcon />}
                         iconBg="bg-emerald-500/10"
                         valueColor="text-emerald-400"
@@ -164,7 +162,6 @@ export default function CashAccountsPage() {
                 ) : (
                     <CashAccountTable
                         accounts={accounts}
-                        onView={handleViewAccount}
                     />
                 )}
             </div>

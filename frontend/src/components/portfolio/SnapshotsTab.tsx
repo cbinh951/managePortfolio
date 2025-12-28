@@ -1,5 +1,7 @@
 import { Snapshot } from '@/types/models';
 import Link from 'next/link';
+import { useSettings } from '@/contexts/SettingsContext';
+import { formatCurrency } from '@/utils/currencyUtils';
 
 interface SnapshotsTabProps {
     snapshots: Snapshot[];
@@ -8,6 +10,7 @@ interface SnapshotsTabProps {
 }
 
 export default function SnapshotsTab({ snapshots, portfolioId, loading = false }: SnapshotsTabProps) {
+    const { settings } = useSettings();
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
@@ -93,10 +96,7 @@ export default function SnapshotsTab({ snapshots, portfolioId, loading = false }
                                             })}
                                         </td>
                                         <td className="py-4 px-6 text-sm font-semibold text-white text-right">
-                                            ${snapshot.nav.toLocaleString(undefined, {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2,
-                                            })}
+                                            {formatCurrency(snapshot.nav, 'VND', settings.displayCurrency, settings.exchangeRate)}
                                         </td>
                                         <td className="py-4 px-6 text-sm text-right">
                                             {change !== null ? (

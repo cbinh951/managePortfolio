@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { apiClient } from '@/services/api';
+import { useSettings } from '@/contexts/SettingsContext';
 
 interface AddTransactionModalProps {
     isOpen: boolean;
@@ -18,12 +19,14 @@ export default function AddTransactionModal({
     onClose,
     onSuccess
 }: AddTransactionModalProps) {
+    const { settings } = useSettings();
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         type: 'DEPOSIT',
         amount: '',
         description: '',
     });
+    const [displayAmount, setDisplayAmount] = useState('');
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -31,6 +34,23 @@ export default function AddTransactionModal({
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        // Remove all non-digit characters
+        const cleanValue = value.replace(/[^\d]/g, '');
+
+        // Update the actual value (numeric)
+        setFormData(prev => ({ ...prev, amount: cleanValue }));
+
+        // Update display value with formatting
+        if (cleanValue) {
+            const formatted = parseInt(cleanValue).toLocaleString();
+            setDisplayAmount(formatted);
+        } else {
+            setDisplayAmount('');
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -66,6 +86,7 @@ export default function AddTransactionModal({
                 amount: '',
                 description: '',
             });
+            setDisplayAmount('');
 
             onSuccess();
             onClose();
@@ -83,6 +104,7 @@ export default function AddTransactionModal({
             amount: '',
             description: '',
         });
+        setDisplayAmount('');
         setError(null);
         onClose();
     };
@@ -166,16 +188,14 @@ export default function AddTransactionModal({
                             Amount <span className="text-red-400">*</span>
                         </label>
                         <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{settings.displayCurrency === 'USD' ? '$' : '₫'}</span>
                             <input
-                                type="number"
+                                type="text"
                                 id="amount"
                                 name="amount"
-                                value={formData.amount}
-                                onChange={handleChange}
-                                placeholder="0.00"
-                                step="0.01"
-                                min="0"
+                                value={displayAmount}
+                                onChange={handleAmountChange}
+                                placeholder="0"
                                 className="w-full pl-8 pr-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 disabled={loading}
                             />

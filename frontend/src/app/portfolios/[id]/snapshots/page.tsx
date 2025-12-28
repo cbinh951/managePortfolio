@@ -9,10 +9,13 @@ import MetricCard from '@/components/portfolio/MetricCard';
 import NAVChart from '@/components/snapshots/NAVChart';
 import AddSnapshotForm from '@/components/snapshots/AddSnapshotForm';
 import SnapshotHistoryTable from '@/components/snapshots/SnapshotHistoryTable';
+import { useSettings } from '@/contexts/SettingsContext';
+import { formatCurrency } from '@/utils/currencyUtils';
 
 export default function SnapshotsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
+    const { settings } = useSettings();
 
     const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
     const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
@@ -146,7 +149,7 @@ export default function SnapshotsPage({ params }: { params: Promise<{ id: string
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <MetricCard
                         label="CURRENT NAV"
-                        value={`$${currentNAV.toLocaleString()}`}
+                        value={formatCurrency(currentNAV, 'VND', settings.displayCurrency, settings.exchangeRate)}
                         valueColor="text-white"
                         icon={
                             <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,7 +161,7 @@ export default function SnapshotsPage({ params }: { params: Promise<{ id: string
                         label="YTD GROWTH"
                         value={`${ytdGrowth >= 0 ? '+' : ''}${ytdGrowth.toFixed(2)}%`}
                         change={ytdGrowth}
-                        changeLabel={`$${ytdGrowthAmount.toLocaleString()}`}
+                        changeLabel={formatCurrency(ytdGrowthAmount, 'VND', settings.displayCurrency, settings.exchangeRate)}
                         trend={ytdGrowth >= 0 ? 'up' : 'down'}
                         valueColor={ytdGrowth >= 0 ? 'text-emerald-400' : 'text-red-400'}
                         icon={
@@ -169,7 +172,7 @@ export default function SnapshotsPage({ params }: { params: Promise<{ id: string
                     />
                     <MetricCard
                         label="ALL TIME HIGH"
-                        value={`$${allTimeHigh.toLocaleString()}`}
+                        value={formatCurrency(allTimeHigh, 'VND', settings.displayCurrency, settings.exchangeRate)}
                         changeLabel={allTimeHighDate}
                         valueColor="text-amber-400"
                         icon={

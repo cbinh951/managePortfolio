@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Snapshot } from '@/types/models';
 import EditSnapshotModal from './EditSnapshotModal';
 import DeleteConfirmationDialog from './DeleteConfirmationDialog';
+import { useSettings } from '@/contexts/SettingsContext';
+import { formatCurrency } from '@/utils/currencyUtils';
 
 interface SnapshotHistoryTableProps {
     snapshots: Snapshot[];
@@ -12,6 +14,7 @@ interface SnapshotHistoryTableProps {
 }
 
 export default function SnapshotHistoryTable({ snapshots, loading = false, onUpdate }: SnapshotHistoryTableProps) {
+    const { settings } = useSettings();
     const [editingSnapshot, setEditingSnapshot] = useState<Snapshot | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [deletingSnapshot, setDeletingSnapshot] = useState<Snapshot | null>(null);
@@ -212,10 +215,7 @@ export default function SnapshotHistoryTable({ snapshots, loading = false, onUpd
                                             })}
                                         </td>
                                         <td className="py-3 px-6 text-sm font-semibold text-white text-right">
-                                            ${snapshot.nav.toLocaleString(undefined, {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2,
-                                            })}
+                                            {formatCurrency(snapshot.nav, 'VND', settings.displayCurrency, settings.exchangeRate)}
                                         </td>
                                         <td className="py-3 px-6 text-sm text-right">
                                             {change !== null ? (

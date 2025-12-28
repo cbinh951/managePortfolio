@@ -115,11 +115,11 @@ export default function TransactionsPage() {
     // Calculate totals
     const totalInflow = filteredTransactions
         .filter(t => t.type === 'DEPOSIT' || t.type === 'SELL')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((sum, t) => sum + (typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount), 0);
 
     const totalOutflow = filteredTransactions
         .filter(t => t.type === 'WITHDRAW' || t.type === 'BUY' || t.type === 'FEE')
-        .reduce((sum, t) => sum + t.amount, 0);
+        .reduce((sum, t) => sum + Math.abs(typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount), 0);
 
     const allPortfoliosAndAccounts: (Portfolio | CashAccount)[] = [
         ...portfolios,

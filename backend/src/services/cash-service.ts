@@ -39,7 +39,23 @@ export class CashService {
         if (!account) return null;
 
         const allTransactions = await this.csvService.readCsv<Transaction>('transactions.csv');
-        const transactions = allTransactions.filter(t => t.cash_account_id === accountId);
+        const transactions = allTransactions
+            .filter(t => {
+                // Include DEPOSIT and WITHDRAW for this cash account
+                if ((t.type === 'DEPOSIT' || t.type === 'WITHDRAW') && t.cash_account_id === accountId) {
+                    return true;
+                }
+                // For TRANSFER: only include if this cash account is the source (negative amount)
+                // This avoids double-counting paired transfers
+                if (t.type === 'TRANSFER' && t.cash_account_id === accountId && t.amount < 0) {
+                    return true;
+                }
+                return false;
+            })
+            .map(t => ({
+                ...t,
+                amount: typeof t.amount === 'string' ? parseFloat(t.amount) : t.amount
+            }));
 
         const balance = calculateCashBalance(transactions);
 

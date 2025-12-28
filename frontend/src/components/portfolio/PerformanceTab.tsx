@@ -1,6 +1,11 @@
+import { useState, useMemo } from 'react';
 import { Snapshot } from '@/types/models';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
+} from 'recharts';
+import MonthlyHeatmap from '@/components/portfolio/MonthlyHeatmap';
+import RiskMetrics from '@/components/portfolio/RiskMetrics';
+import { calculateMonthlyReturns, calculateRiskMetrics } from '@/utils/performanceUtils';
 
 interface PerformanceTabProps {
     xirr: number | null;
@@ -9,7 +14,75 @@ interface PerformanceTabProps {
     loading?: boolean;
 }
 
+type TimeRange = '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL';
+
 export default function PerformanceTab({ xirr, totalReturn, snapshots = [], loading = false }: PerformanceTabProps) {
+    const [timeRange, setTimeRange] = useState<TimeRange>('ALL');
+
+    const sortedSnapshots = useMemo(() => {
+        if (!snapshots || snapshots.length === 0) return [];
+        return [...snapshots].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    }, [snapshots]);
+
+    // Calculate derived data
+    const monthlyReturns = useMemo(() => calculateMonthlyReturns(snapshots), [snapshots]);
+    const riskMetrics = useMemo(() => calculateRiskMetrics(snapshots), [snapshots]);
+
+    // Filter data for chart based on time range
+    const chartData = useMemo(() => {
+        if (sortedSnapshots.length === 0) return [];
+
+        const now = new Date();
+        let startDate = new Date(sortedSnapshots[0].date); // Default to ALL
+
+        switch (timeRange) {
+            case '1M':
+                startDate = new Date();
+                startDate.setMonth(now.getMonth() - 1);
+                break;
+            case '3M':
+                startDate = new Date();
+                startDate.setMonth(now.getMonth() - 3);
+                break;
+            case '6M':
+                startDate = new Date();
+                startDate.setMonth(now.getMonth() - 6);
+                break;
+            case '1Y':
+                startDate = new Date();
+                startDate.setFullYear(now.getFullYear() - 1);
+                break;
+            case 'YTD':
+                startDate = new Date(now.getFullYear(), 0, 1); // Jan 1st of current year
+                break;
+            case 'ALL':
+            default:
+                // Use first snapshot date
+                startDate = new Date(sortedSnapshots[0].date);
+                break;
+        }
+
+        const filtered = sortedSnapshots.filter(s => new Date(s.date) >= startDate);
+
+        // Normalize for "Growth of" chart - percentage change relative to start of period
+        if (filtered.length === 0) return [];
+
+        const baseNav = filtered[0].nav;
+        return filtered.map(s => ({
+            date: s.date,
+            displayDate: new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }),
+            nav: s.nav,
+            value: baseNav > 0 ? ((s.nav - baseNav) / baseNav) * 100 : 0
+        }));
+    }, [sortedSnapshots, timeRange]);
+
+    // Current period return
+    const periodReturn = useMemo(() => {
+        if (chartData.length < 2) return 0;
+        return chartData[chartData.length - 1].value;
+    }, [chartData]);
+
+
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
@@ -18,261 +91,167 @@ export default function PerformanceTab({ xirr, totalReturn, snapshots = [], load
         );
     }
 
-    // Calculate time period returns
-    const calculatePeriodReturn = (months: number) => {
-        if (snapshots.length < 2) return null;
-
-        const sortedSnapshots = [...snapshots].sort((a, b) =>
-            new Date(b.date).getTime() - new Date(a.date).getTime()
+    if (snapshots.length < 2) {
+        return (
+            <div className="flex flex-col items-center justify-center py-20 text-center bg-slate-800/50 rounded-xl border border-slate-700">
+                <svg className="w-16 h-16 text-slate-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                <h3 className="text-xl font-semibold text-slate-300 mb-2">Insufficient Data</h3>
+                <p className="text-slate-500 max-w-md">
+                    We need at least two snapshots to calculate performance metrics.
+                    Please ensure you have added snapshot history to your portfolio.
+                </p>
+            </div>
         );
-
-        const latestSnapshot = sortedSnapshots[0];
-        const targetDate = new Date();
-        targetDate.setMonth(targetDate.getMonth() - months);
-
-        // Find closest snapshot to target date
-        const periodSnapshot = sortedSnapshots.reduce((closest, snapshot) => {
-            const snapshotDate = new Date(snapshot.date);
-            const closestDate = new Date(closest.date);
-            return Math.abs(snapshotDate.getTime() - targetDate.getTime()) <
-                Math.abs(closestDate.getTime() - targetDate.getTime()) ? snapshot : closest;
-        });
-
-        if (periodSnapshot.nav === 0) return null;
-        return ((latestSnapshot.nav - periodSnapshot.nav) / periodSnapshot.nav) * 100;
-    };
-
-    // Calculate max drawdown
-    const calculateMaxDrawdown = () => {
-        if (snapshots.length < 2) return null;
-
-        const sortedSnapshots = [...snapshots].sort((a, b) =>
-            new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
-
-        let maxDrawdown = 0;
-        let peak = sortedSnapshots[0].nav;
-
-        for (const snapshot of sortedSnapshots) {
-            if (snapshot.nav > peak) {
-                peak = snapshot.nav;
-            }
-            const drawdown = ((snapshot.nav - peak) / peak) * 100;
-            if (drawdown < maxDrawdown) {
-                maxDrawdown = drawdown;
-            }
-        }
-
-        return maxDrawdown;
-    };
-
-    // Calculate win rate (percentage of positive changes)
-    const calculateWinRate = () => {
-        if (snapshots.length < 2) return null;
-
-        const sortedSnapshots = [...snapshots].sort((a, b) =>
-            new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
-
-        let positiveChanges = 0;
-        for (let i = 1; i < sortedSnapshots.length; i++) {
-            if (sortedSnapshots[i].nav > sortedSnapshots[i - 1].nav) {
-                positiveChanges++;
-            }
-        }
-
-        return (positiveChanges / (sortedSnapshots.length - 1)) * 100;
-    };
-
-    const oneMonthReturn = calculatePeriodReturn(1);
-    const threeMonthReturn = calculatePeriodReturn(3);
-    const sixMonthReturn = calculatePeriodReturn(6);
-    const oneYearReturn = calculatePeriodReturn(12);
-    const maxDrawdown = calculateMaxDrawdown();
-    const winRate = calculateWinRate();
+    }
 
     return (
         <div className="space-y-6">
-            {/* Time Period Returns */}
-            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-semibold text-white">Time Period Returns</h3>
-                    <div className="text-xs text-slate-500">As of today</div>
-                </div>
+            <h2 className="text-2xl font-bold text-white mb-2">Performance Analytics</h2>
+            <p className="text-slate-400 -mt-4 mb-6">Detailed analysis of your portfolio&apos;s growth, risk metrics, and returns over time.</p>
 
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    {[
-                        { label: '1M', value: oneMonthReturn },
-                        { label: '3M', value: threeMonthReturn },
-                        { label: '6M', value: sixMonthReturn },
-                        { label: '1Y', value: oneYearReturn },
-                        { label: 'ALL', value: totalReturn },
-                    ].map((period) => (
-                        <div key={period.label} className="text-center p-4 bg-slate-900/50 rounded-lg border border-slate-700/50">
-                            <div className="text-xs text-slate-400 mb-2">{period.label}</div>
-                            <div className={`text-lg font-bold ${period.value === null ? 'text-slate-500' :
-                                period.value >= 0 ? 'text-emerald-400' : 'text-red-400'
-                                }`}>
-                                {period.value === null ? 'N/A' :
-                                    `${period.value >= 0 ? '+' : ''}${period.value.toFixed(1)}%`}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Performance Metrics */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Key Metrics */}
-                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Key Performance Metrics</h3>
-                    <div className="space-y-4">
-                        {xirr !== null && (
-                            <div className="flex items-center justify-between pb-3 border-b border-slate-700/50">
-                                <div>
-                                    <span className="text-sm text-slate-400">XIRR (Annualized)</span>
-                                    <p className="text-xs text-slate-500 mt-0.5">Internal Rate of Return</p>
-                                </div>
-                                <span className={`text-lg font-bold ${xirr >= 0 ? 'text-emerald-400' : 'text-red-400'
-                                    }`}>
-                                    {xirr >= 0 ? '+' : ''}{xirr.toFixed(2)}%
-                                </span>
-                            </div>
-                        )}
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-700/50">
-                            <div>
-                                <span className="text-sm text-slate-400">Total Return</span>
-                                <p className="text-xs text-slate-500 mt-0.5">Cumulative percentage gain</p>
-                            </div>
-                            <span className={`text-lg font-bold ${totalReturn >= 0 ? 'text-emerald-400' : 'text-red-400'
-                                }`}>
-                                {totalReturn >= 0 ? '+' : ''}{totalReturn.toFixed(2)}%
-                            </span>
-                        </div>
-                        {maxDrawdown !== null && (
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <span className="text-sm text-slate-400">Max Drawdown</span>
-                                    <p className="text-xs text-slate-500 mt-0.5">Largest peak-to-trough decline</p>
-                                </div>
-                                <span className="text-lg font-bold text-red-400">{maxDrawdown.toFixed(1)}%</span>
-                            </div>
-                        )}
+            {/* Top Cards Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Net Worth (Latest NAV) */}
+                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <svg className="w-24 h-24 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z" /><path d="M12 6a1 1 0 0 0-1 1v4.59L8.71 8.3a1 1 0 0 0-1.42 1.42l4 4a1 1 0 0 0 1.42 0l4-4a1 1 0 0 0-1.42-1.42L13 11.59V7a1 1 0 0 0-1-1z" /></svg>
                     </div>
-                </div>
-
-                {/* Risk Metrics */}
-                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4">Portfolio Statistics</h3>
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between pb-3 border-b border-slate-700/50">
-                            <div>
-                                <span className="text-sm text-slate-400">Total Snapshots</span>
-                                <p className="text-xs text-slate-500 mt-0.5">Number of data points</p>
-                            </div>
-                            <span className="text-lg font-bold text-slate-300">{snapshots.length}</span>
+                    <div className="relative z-10">
+                        <div className="text-slate-400 text-sm font-medium mb-1">Current NAV</div>
+                        <div className="text-2xl font-bold text-white mb-2">
+                            {snapshots.length > 0
+                                ? sortedSnapshots[sortedSnapshots.length - 1].nav.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) // Assuming USD mostly, or needs context
+                                : '$0.00'
+                            }
                         </div>
-                        {winRate !== null && (
-                            <div className="flex items-center justify-between pb-3 border-b border-slate-700/50">
-                                <div>
-                                    <span className="text-sm text-slate-400">Win Rate</span>
-                                    <p className="text-xs text-slate-500 mt-0.5">Percentage of positive periods</p>
-                                </div>
-                                <span className="text-lg font-bold text-emerald-400">{winRate.toFixed(1)}%</span>
-                            </div>
-                        )}
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <span className="text-sm text-slate-400">Tracking Period</span>
-                                <p className="text-xs text-slate-500 mt-0.5">Days of data</p>
-                            </div>
-                            <span className="text-lg font-bold text-slate-300">
-                                {snapshots.length >= 2 ? (() => {
-                                    const sorted = [...snapshots].sort((a, b) =>
-                                        new Date(a.date).getTime() - new Date(b.date).getTime()
-                                    );
-                                    const days = Math.floor(
-                                        (new Date(sorted[sorted.length - 1].date).getTime() -
-                                            new Date(sorted[0].date).getTime()) / (1000 * 60 * 60 * 24)
-                                    );
-                                    return days;
-                                })() : 0}
+                        <div className="flex items-center gap-2 text-xs">
+                            <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">
+                                {snapshots.length} Snapshots
                             </span>
                         </div>
                     </div>
                 </div>
+
+                {/* Total Gain/Loss */}
+                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <svg className="w-24 h-24 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z" /></svg>
+                    </div>
+                    <div className="relative z-10">
+                        <div className="text-slate-400 text-sm font-medium mb-1">Total Return</div>
+                        <div className={`text-2xl font-bold mb-2 ${totalReturn >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {totalReturn > 0 ? '+' : ''}{totalReturn.toFixed(2)}%
+                        </div>
+                        <div className="text-xs text-slate-400">Since inception</div>
+                    </div>
+                </div>
+
+                {/* XIRR */}
+                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10">
+                        <svg className="w-24 h-24 text-purple-500" fill="currentColor" viewBox="0 0 24 24"><path d="M7 11h2v2H7zm0 4h2v2H7zm4-4h2v2h-2zm0 4h2v2h-2zm4-4h2v2h-2zm0 4h2v2h-2zM5 22h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-2V2h-2v2H9V2H7v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2zM19 8v2H5V8h14z" /></svg>
+                    </div>
+                    <div className="relative z-10">
+                        <div className="text-slate-400 text-sm font-medium mb-1">XIRR (Annualized)</div>
+                        <div className={`text-2xl font-bold mb-2 ${xirr !== null && xirr >= 0 ? 'text-purple-400' : 'text-red-400'}`}>
+                            {xirr !== null ? `${xirr > 0 ? '+' : ''}${xirr.toFixed(2)}%` : '--'}
+                        </div>
+                        <div className="text-xs text-slate-400">Internal Rate of Return</div>
+                    </div>
+                </div>
             </div>
 
-            {/* Performance Comparison */}
+            {/* Main Chart Section */}
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Cumulative Return</h3>
-                {snapshots.length >= 2 ? (() => {
-                    const sortedSnapshots = [...snapshots].sort((a, b) =>
-                        new Date(a.date).getTime() - new Date(b.date).getTime()
-                    );
-
-                    const initialValue = sortedSnapshots[0].nav;
-                    const chartData = sortedSnapshots.map(snapshot => ({
-                        date: new Date(snapshot.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                        return: initialValue > 0 ? ((snapshot.nav - initialValue) / initialValue) * 100 : 0,
-                    }));
-
-                    return (
-                        <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                                    <XAxis
-                                        dataKey="date"
-                                        stroke="#94a3b8"
-                                        style={{ fontSize: '12px' }}
-                                    />
-                                    <YAxis
-                                        stroke="#94a3b8"
-                                        style={{ fontSize: '12px' }}
-                                        tickFormatter={(value) => `${value.toFixed(0)}%`}
-                                    />
-                                    <Tooltip
-                                        content={({ active, payload }: any) => {
-                                            if (active && payload && payload.length) {
-                                                const returnValue = payload[0].value;
-                                                return (
-                                                    <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-lg">
-                                                        <p className="text-xs text-slate-400 mb-1">{payload[0].payload.date}</p>
-                                                        <p className={`text-sm font-semibold ${returnValue >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                                            {returnValue >= 0 ? '+' : ''}{returnValue.toFixed(2)}%
-                                                        </p>
-                                                    </div>
-                                                );
-                                            }
-                                            return null;
-                                        }}
-                                    />
-                                    <Line
-                                        type="monotone"
-                                        dataKey="return"
-                                        stroke="#3b82f6"
-                                        strokeWidth={2}
-                                        dot={{ fill: '#3b82f6', r: 3 }}
-                                        activeDot={{ r: 5 }}
-                                    />
-                                    {/* Zero line */}
-                                    <ReferenceLine y={0} stroke="#64748b" strokeDasharray="3 3" />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
-                    );
-                })() : (
-                    <div className="h-64 flex items-center justify-center bg-slate-900/50 rounded-lg border border-slate-700/50">
-                        <div className="text-center">
-                            <svg className="w-16 h-16 text-slate-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                            </svg>
-                            <p className="text-sm text-slate-500">No snapshot data available</p>
-                            <p className="text-xs text-slate-600 mt-1">Add snapshots to see cumulative return chart</p>
-                        </div>
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <div>
+                        <h3 className="text-lg font-semibold text-white">Portfolio Growth</h3>
+                        <p className="text-sm text-slate-400">
+                            Cumulative return over selected period:
+                            <span className={`ml-2 font-bold ${periodReturn >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {periodReturn > 0 ? '+' : ''}{periodReturn.toFixed(2)}%
+                            </span>
+                        </p>
                     </div>
-                )}
+                    {/* Time Filters */}
+                    <div className="flex bg-slate-900/50 p-1 rounded-lg border border-slate-700/50">
+                        {(['1M', '3M', '6M', 'YTD', '1Y', 'ALL'] as TimeRange[]).map((range) => (
+                            <button
+                                key={range}
+                                onClick={() => setTimeRange(range)}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${timeRange === range
+                                    ? 'bg-blue-600 text-white shadow-lg'
+                                    : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                                    }`}
+                            >
+                                {range}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="h-[350px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} vertical={false} />
+                            <XAxis
+                                dataKey="displayDate"
+                                stroke="#94a3b8"
+                                tick={{ fontSize: 12 }}
+                                tickMargin={10}
+                                minTickGap={30}
+                            />
+                            <YAxis
+                                stroke="#94a3b8"
+                                tick={{ fontSize: 12 }}
+                                tickFormatter={(val) => `${val.toFixed(0)}%`}
+                            />
+                            <Tooltip
+                                content={({ active, payload }) => {
+                                    if (active && payload && payload.length) {
+                                        return (
+                                            <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-xl">
+                                                <p className="text-slate-400 text-xs mb-1">{payload[0].payload.displayDate}</p>
+                                                <p className="text-white font-bold text-lg">
+                                                    {Number(payload[0].value).toFixed(2)}%
+                                                </p>
+                                                <p className="text-slate-400 text-xs">NAV: {Number(payload[0].payload.nav).toLocaleString()}</p>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                }}
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="value"
+                                stroke="#3b82f6"
+                                strokeWidth={3}
+                                fillOpacity={1}
+                                fill="url(#colorValue)"
+                            />
+                            <ReferenceLine y={0} stroke="#64748b" strokeDasharray="3 3" />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            {/* Bottom Grid: Heatmap + Risk Stats */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 min-h-[400px]">
+                    <MonthlyHeatmap monthlyReturns={monthlyReturns} />
+                </div>
+                <div className="min-h-[400px]">
+                    <RiskMetrics metrics={riskMetrics} />
+                </div>
             </div>
         </div>
     );

@@ -81,8 +81,12 @@ export function calculateCashBalance(transactions: Transaction[]): number {
         if (t.type === 'DEPOSIT' || (t.type === 'TRANSFER' && t.amount > 0)) {
             return sum + t.amount;
         }
-        // WITHDRAW and outgoing TRANSFER are negative
-        if (t.type === 'WITHDRAW' || (t.type === 'TRANSFER' && t.amount < 0)) {
+        // WITHDRAW: amounts are stored as positive in CSV, so we need to subtract them
+        if (t.type === 'WITHDRAW') {
+            return sum - t.amount;
+        }
+        // Outgoing TRANSFER: amounts are already negative in CSV
+        if (t.type === 'TRANSFER' && t.amount < 0) {
             return sum + t.amount;
         }
         return sum;

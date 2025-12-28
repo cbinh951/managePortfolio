@@ -50,6 +50,12 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
         loadPortfolioData();
     }, [id]);
 
+    useEffect(() => {
+        if (data?.type === 'cash') {
+            setActiveTab('transactions');
+        }
+    }, [data?.type]);
+
     const loadPortfolioData = async () => {
         try {
             setLoading(true);
@@ -184,10 +190,10 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
     const xirr = isPortfolio ? data.performance?.xirr || null : null;
 
     const tabs = [
-        { id: 'overview', label: 'Overview' },
+        { id: 'overview', label: 'Overview', hidden: !isPortfolio },
         { id: 'transactions', label: 'Transactions' },
         { id: 'snapshots', label: 'Snapshots', hidden: !isPortfolio },
-        { id: 'performance', label: 'Performance' },
+        { id: 'performance', label: 'Performance', hidden: !isPortfolio },
     ];
 
     return (
@@ -253,13 +259,43 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                             valueColor="text-slate-300"
                         />
                     )}
-                    <MetricCard
-                        label="TOTAL PROFIT"
-                        value={formatCurrency(profit, 'VND', settings.displayCurrency, settings.exchangeRate)}
-                        change={profitPercentage}
-                        trend={profit >= 0 ? 'up' : 'down'}
-                        valueColor={profit >= 0 ? 'text-emerald-400' : 'text-red-400'}
-                    />
+                    {!isPortfolio && (
+                        <MetricCard
+                            label="TOTAL WITHDRAW"
+                            value={formatCurrency(
+                                data.transactions
+                                    .filter(t => t.type === 'WITHDRAW')
+                                    .reduce((sum, t) => sum + Math.abs(parseFloat(String(t.amount))), 0),
+                                'VND',
+                                settings.displayCurrency,
+                                settings.exchangeRate
+                            )}
+                            valueColor="text-red-400"
+                        />
+                    )}
+                    {!isPortfolio && (
+                        <MetricCard
+                            label="TOTAL TRANSFER"
+                            value={formatCurrency(
+                                data.transactions
+                                    .filter(t => t.type === 'TRANSFER')
+                                    .reduce((sum, t) => sum + Math.abs(parseFloat(String(t.amount))), 0) / 2, // Divide by 2 because each transfer has 2 records
+                                'VND',
+                                settings.displayCurrency,
+                                settings.exchangeRate
+                            )}
+                            valueColor="text-purple-400"
+                        />
+                    )}
+                    {isPortfolio && (
+                        <MetricCard
+                            label="TOTAL PROFIT"
+                            value={formatCurrency(profit, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                            change={profitPercentage}
+                            trend={profit >= 0 ? 'up' : 'down'}
+                            valueColor={profit >= 0 ? 'text-emerald-400' : 'text-red-400'}
+                        />
+                    )}
                     {isPortfolio && xirr !== null && (
                         <MetricCard
                             label="XIRR"
@@ -287,6 +323,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                     {activeTab === 'transactions' && (
                         <TransactionsTab
                             transactions={data.transactions}
+                            entity={isPortfolio ? data.portfolio! : data.cashAccount!}
                             onEdit={handleEditTransactionClick}
                             onDelete={handleDeleteTransactionClick}
                             onAddTransaction={handleAddTransactionClick}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSettings } from '@/contexts/SettingsContext';
 
 interface AddSnapshotFormProps {
     portfolioId: string;
@@ -8,16 +9,37 @@ interface AddSnapshotFormProps {
 }
 
 export default function AddSnapshotForm({ portfolioId, onSuccess }: AddSnapshotFormProps) {
+    const { settings } = useSettings();
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         nav: '',
     });
+    const [displayNav, setDisplayNav] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        setError(null);
+    };
+
+    const handleNavChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        // Remove all non-digit characters
+        const cleanValue = value.replace(/[^\d]/g, '');
+
+        // Update the actual value (numeric)
+        setFormData(prev => ({ ...prev, nav: cleanValue }));
+
+        // Update display value with formatting
+        if (cleanValue) {
+            const formatted = parseInt(cleanValue).toLocaleString();
+            setDisplayNav(formatted);
+        } else {
+            setDisplayNav('');
+        }
+
         setError(null);
     };
 
@@ -75,6 +97,7 @@ export default function AddSnapshotForm({ portfolioId, onSuccess }: AddSnapshotF
                 date: new Date().toISOString().split('T')[0],
                 nav: '',
             });
+            setDisplayNav('');
 
             onSuccess();
         } catch (err) {
@@ -83,6 +106,8 @@ export default function AddSnapshotForm({ portfolioId, onSuccess }: AddSnapshotF
             setLoading(false);
         }
     };
+
+    const currencySymbol = settings.displayCurrency === 'USD' ? '$' : '₫';
 
     return (
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
@@ -123,16 +148,14 @@ export default function AddSnapshotForm({ portfolioId, onSuccess }: AddSnapshotF
                         Total Net Asset Value <span className="text-red-400">*</span>
                     </label>
                     <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
                         <input
-                            type="number"
+                            type="text"
                             id="nav"
                             name="nav"
-                            value={formData.nav}
-                            onChange={handleChange}
-                            placeholder="0.00"
-                            step="0.01"
-                            min="0"
+                            value={displayNav}
+                            onChange={handleNavChange}
+                            placeholder="0"
                             className="w-full pl-8 pr-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             disabled={loading}
                         />

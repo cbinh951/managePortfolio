@@ -80,6 +80,35 @@ export default function AddTransactionModal({
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        // Remove all non-digit characters except decimal point
+        const numericValue = value.replace(/[^\d.]/g, '');
+
+        // Prevent multiple decimal points
+        const parts = numericValue.split('.');
+        const formattedValue = parts.length > 2
+            ? parts[0] + '.' + parts.slice(1).join('')
+            : numericValue;
+
+        setFormData(prev => ({ ...prev, amount: formattedValue }));
+    };
+
+    const formatAmountDisplay = (value: string): string => {
+        if (!value) return '';
+
+        const parts = value.split('.');
+        const integerPart = parts[0];
+        const decimalPart = parts[1];
+
+        // Add thousand separators to integer part
+        const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+        return decimalPart !== undefined
+            ? `${formattedInteger}.${decimalPart}`
+            : formattedInteger;
+    };
+
     const handleAccountTypeChange = (type: 'portfolio' | 'cash') => {
         setSelectedAccountType(type);
         if (type === 'portfolio' && portfolios.length > 0) {
@@ -256,14 +285,12 @@ export default function AddTransactionModal({
                                     <div className="relative">
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{getCurrencySymbol(settings.displayCurrency)}</span>
                                         <input
-                                            type="number"
+                                            type="text"
                                             id="amount"
                                             name="amount"
-                                            value={formData.amount}
-                                            onChange={handleChange}
-                                            placeholder="0.00"
-                                            step="0.01"
-                                            min="0"
+                                            value={formatAmountDisplay(formData.amount)}
+                                            onChange={handleAmountChange}
+                                            placeholder="0"
                                             className="w-full pl-8 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                                             disabled={loading}
                                         />

@@ -1,4 +1,7 @@
+import { useState } from 'react';
 import { Snapshot } from '@/types/models';
+import { useSettings } from '@/contexts/SettingsContext';
+import { formatCurrency } from '@/utils/currencyUtils';
 
 interface NAVChartProps {
     snapshots: Snapshot[];
@@ -13,6 +16,9 @@ const TIME_PERIODS = [
 ];
 
 export default function NAVChart({ snapshots, selectedPeriod, onPeriodChange }: NAVChartProps) {
+    const { settings } = useSettings();
+    const [hoveredPoint, setHoveredPoint] = useState<{ snapshot: Snapshot; x: number; y: number } | null>(null);
+
     // Filter snapshots based on selected period
     const getFilteredSnapshots = () => {
         const now = new Date();
@@ -64,7 +70,7 @@ export default function NAVChart({ snapshots, selectedPeriod, onPeriodChange }: 
             <div className="mb-4 text-right">
                 <span className="text-xs text-slate-400">Current: </span>
                 <span className="text-sm font-semibold text-white">
-                    ${currentNAV.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {formatCurrency(currentNAV, 'VND', settings.displayCurrency, settings.exchangeRate)}
                 </span>
             </div>
 
@@ -81,8 +87,13 @@ export default function NAVChart({ snapshots, selectedPeriod, onPeriodChange }: 
                 ) : (
                     <div className="w-full h-full flex flex-col">
                         {/* Chart SVG */}
-                        <div className="flex-1 px-6 pt-6 pb-2">
-                            <svg className="w-full h-full" viewBox="0 0 800 280" preserveAspectRatio="none">
+                        <div className="flex-1 px-6 pt-6 pb-2 relative">
+                            <svg
+                                className="w-full h-full"
+                                viewBox="0 0 800 280"
+                                preserveAspectRatio="none"
+                                onMouseLeave={() => setHoveredPoint(null)}
+                            >
                                 {/* Grid lines */}
                                 <line x1="0" y1="70" x2="800" y2="70" stroke="rgb(51 65 85)" strokeWidth="1" strokeDasharray="5,5" />
                                 <line x1="0" y1="140" x2="800" y2="140" stroke="rgb(51 65 85)" strokeWidth="1" strokeDasharray="5,5" />
@@ -116,31 +127,68 @@ export default function NAVChart({ snapshots, selectedPeriod, onPeriodChange }: 
                                                 strokeLinecap="round"
                                                 strokeLinejoin="round"
                                             />
-                                            {/* Data point circles */}
+                                            {/* Data point circles with hover zones */}
                                             {sortedSnapshots.map((snapshot, index) => {
                                                 const x = (index / (sortedSnapshots.length - 1)) * 800;
                                                 const normalizedValue = (snapshot.nav - minNAV + padding) / (range + 2 * padding);
                                                 const y = 280 - (normalizedValue * 280);
+                                                const isHovered = hoveredPoint?.snapshot.snapshot_id === snapshot.snapshot_id;
+
                                                 return (
-                                                    <circle
-                                                        key={snapshot.snapshot_id}
-                                                        cx={x}
-                                                        cy={y}
-                                                        r="4"
-                                                        fill="#3b82f6"
-                                                        stroke="#1e40af"
-                                                        strokeWidth="1"
-                                                    />
+                                                    <g key={snapshot.snapshot_id}>
+                                                        {/* Invisible larger hit area for easier hovering */}
+                                                        <circle
+                                                            cx={x}
+                                                            cy={y}
+                                                            r="12"
+                                                            fill="transparent"
+                                                            style={{ cursor: 'pointer' }}
+                                                            onMouseEnter={() => setHoveredPoint({ snapshot, x, y })}
+                                                        />
+                                                        {/* Visible circle */}
+                                                        <circle
+                                                            cx={x}
+                                                            cy={y}
+                                                            r={isHovered ? "6" : "4"}
+                                                            fill="#3b82f6"
+                                                            stroke="#1e40af"
+                                                            strokeWidth={isHovered ? "2" : "1"}
+                                                            style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                                                        />
+                                                    </g>
                                                 );
                                             })}
                                         </>
                                     );
                                 })()}
                             </svg>
+
+                            {/* Tooltip */}
+                            {hoveredPoint && (
+                                <div
+                                    className="absolute bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 shadow-xl z-10 pointer-events-none"
+                                    style={{
+                                        left: `${(hoveredPoint.x / 800) * 100}%`,
+                                        top: `${(hoveredPoint.y / 280) * 100}%`,
+                                        transform: 'translate(-50%, -120%)'
+                                    }}
+                                >
+                                    <div className="text-xs text-slate-400 mb-1">
+                                        {new Date(hoveredPoint.snapshot.date).toLocaleDateString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            year: 'numeric'
+                                        })}
+                                    </div>
+                                    <div className="text-sm font-semibold text-white">
+                                        {formatCurrency(hoveredPoint.snapshot.nav, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* X-axis labels with month names */}
-                        <div className="px-6 pb-4 relative" style={{ height: '40px' }}>
+                        <div className="px-6 pb-4 relative bg-slate-900/30" style={{ height: '40px' }}>
                             <div className="flex justify-between items-start">
                                 {(() => {
                                     const sortedSnapshots = [...filteredSnapshots].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -160,10 +208,10 @@ export default function NAVChart({ snapshots, selectedPeriod, onPeriodChange }: 
                                         return (
                                             <div
                                                 key={snapshot.snapshot_id}
-                                                className="absolute transform -translate-x-1/2 text-xs text-slate-500"
+                                                className="absolute transform -translate-x-1/2 text-xs font-medium"
                                                 style={{ left: `${xPosition}%` }}
                                             >
-                                                <div className="text-center">
+                                                <div className="text-center bg-slate-900/80 px-2 py-1 rounded text-slate-300">
                                                     {new Date(snapshot.date).toLocaleDateString('en-US', {
                                                         month: 'short',
                                                         year: sortedSnapshots.length > 6 ? undefined : '2-digit'

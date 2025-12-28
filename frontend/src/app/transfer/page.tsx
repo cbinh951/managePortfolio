@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/services/api';
 import { CashAccount, Portfolio } from '@/types/models';
+import { useSettings } from '@/contexts/SettingsContext';
+import { formatCurrency, convertCurrency, getCurrencySymbol } from '@/utils/currencyUtils';
 
 interface AccountWithBalance extends CashAccount {
     balance: number;
@@ -19,6 +21,7 @@ interface TransferFormData {
 
 export default function TransferPage() {
     const router = useRouter();
+    const { settings } = useSettings();
     const [cashAccounts, setCashAccounts] = useState<AccountWithBalance[]>([]);
     const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
     const [loading, setLoading] = useState(true);
@@ -90,10 +93,11 @@ export default function TransferPage() {
             return 'Please select a destination portfolio';
         }
         if (!formData.amount || transferAmount <= 0) {
-            return 'Amount must be greater than $0';
+            return `Amount must be greater than ${getCurrencySymbol(settings.displayCurrency)}0`;
         }
         if (transferAmount > availableBalance) {
-            return `Insufficient balance. Available: $${availableBalance.toLocaleString()}`;
+            const displayBalance = convertCurrency(availableBalance, 'VND', settings.displayCurrency, settings.exchangeRate);
+            return `Insufficient balance. Available: ${formatCurrency(displayBalance, settings.displayCurrency)}`;
         }
         if (!formData.date) {
             return 'Please select a transfer date';
@@ -197,15 +201,18 @@ export default function TransferPage() {
                                     disabled={submitting}
                                 >
                                     <option value="">Select cash account</option>
-                                    {cashAccounts.map(account => (
-                                        <option key={account.cash_account_id} value={account.cash_account_id}>
-                                            {account.name} - Available: ${account.balance.toLocaleString()}
-                                        </option>
-                                    ))}
+                                    {cashAccounts.map(account => {
+                                        const displayBalance = convertCurrency(account.balance, 'VND', settings.displayCurrency, settings.exchangeRate);
+                                        return (
+                                            <option key={account.cash_account_id} value={account.cash_account_id}>
+                                                {account.name} - Available: {formatCurrency(displayBalance, settings.displayCurrency)}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                                 {selectedAccount && (
                                     <p className="text-xs text-emerald-400 mt-1">
-                                        Available: ${availableBalance.toLocaleString()}
+                                        Available: {formatCurrency(convertCurrency(availableBalance, 'VND', settings.displayCurrency, settings.exchangeRate), settings.displayCurrency)}
                                     </p>
                                 )}
                             </div>
@@ -238,7 +245,7 @@ export default function TransferPage() {
                                     Amount <span className="text-red-400">*</span>
                                 </label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{getCurrencySymbol(settings.displayCurrency)}</span>
                                     <input
                                         type="number"
                                         id="amount"
@@ -349,7 +356,7 @@ export default function TransferPage() {
                                 <div className="flex justify-between text-sm">
                                     <span className="text-slate-400">Transfer Amount</span>
                                     <span className="text-white font-medium">
-                                        ${transferAmount.toLocaleString()}
+                                        {formatCurrency(convertCurrency(transferAmount, 'VND', settings.displayCurrency, settings.exchangeRate), settings.displayCurrency)}
                                     </span>
                                 </div>
 
@@ -362,7 +369,7 @@ export default function TransferPage() {
                                     <div className="flex justify-between">
                                         <span className="text-slate-300 font-medium">Total Debit</span>
                                         <span className="text-white font-bold text-lg">
-                                            ${transferAmount.toLocaleString()}
+                                            {formatCurrency(convertCurrency(transferAmount, 'VND', settings.displayCurrency, settings.exchangeRate), settings.displayCurrency)}
                                         </span>
                                     </div>
                                 </div>
