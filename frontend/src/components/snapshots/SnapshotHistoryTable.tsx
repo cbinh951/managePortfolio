@@ -6,6 +6,7 @@ import EditSnapshotModal from './EditSnapshotModal';
 import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatCurrency } from '@/utils/currencyUtils';
+import { apiClient } from '@/services/api';
 
 interface SnapshotHistoryTableProps {
     snapshots: Snapshot[];
@@ -52,13 +53,7 @@ export default function SnapshotHistoryTable({ snapshots, loading = false, onUpd
         try {
             setDeleting(true);
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/snapshots/${deletingSnapshot.snapshot_id}`, {
-                method: 'DELETE',
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to delete snapshot');
-            }
+            await apiClient.deleteSnapshot(deletingSnapshot.snapshot_id);
 
             setIsDeleteDialogOpen(false);
             setDeletingSnapshot(null);

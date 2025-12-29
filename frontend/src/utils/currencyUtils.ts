@@ -63,7 +63,7 @@ export function formatCurrency(
     // Format based on display currency
     if (displayCurrency === 'VND') {
         // VND: no decimals, symbol after
-        return `${symbol}${Math.round(convertedAmount).toLocaleString()}`;
+        return `${Math.round(convertedAmount).toLocaleString('en-US')} ${symbol}`;
     } else {
         // USD: 2 decimals, symbol before
         return `${symbol}${convertedAmount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
@@ -81,7 +81,7 @@ export function formatDisplayCurrency(
     const symbol = getCurrencySymbol(currency);
 
     if (currency === 'VND') {
-        return `${symbol}${Math.round(amount).toLocaleString()}`;
+        return `${Math.round(amount).toLocaleString('en-US')} ${symbol}`;
     } else {
         return `${symbol}${amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
     }

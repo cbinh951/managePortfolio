@@ -10,8 +10,25 @@ export function calculateXIRR(
 ): number {
     const maxIterations = 100;
     const tolerance = 0.0001;
+    const minRate = -0.99; // -99% minimum rate (investment can't lose more than 100%)
+    const maxRate = 100; // 10000% maximum rate (to handle very high short-term returns)
+
+    console.log('calculateXIRR - Starting calculation');
 
     if (cashFlows.length < 2) {
+        console.log('calculateXIRR - Not enough cash flows');
+        return 0;
+    }
+
+    // Validate cash flows
+    const hasPositive = cashFlows.some(cf => cf.amount > 0);
+    const hasNegative = cashFlows.some(cf => cf.amount < 0);
+
+    console.log('calculateXIRR - Validation: hasPositive=', hasPositive, 'hasNegative=', hasNegative);
+
+    // Need both positive and negative cash flows for valid XIRR
+    if (!hasPositive || !hasNegative) {
+        console.log('calculateXIRR - Invalid cash flows: need both positive and negative');
         return 0;
     }
 
@@ -20,6 +37,7 @@ export function calculateXIRR(
     const firstDate = sorted[0].date;
 
     let rate = guess;
+    console.log('calculateXIRR - Starting rate:', rate);
 
     for (let i = 0; i < maxIterations; i++) {
         let npv = 0;
@@ -28,22 +46,58 @@ export function calculateXIRR(
         for (const cf of sorted) {
             const daysDiff = daysBetween(firstDate, cf.date);
             const years = daysDiff / 365;
+
+            // Prevent extreme values
+            if (years < 0) continue;
+
             const discountFactor = Math.pow(1 + rate, years);
+
+            // Check for invalid discount factor
+            if (!isFinite(discountFactor) || discountFactor === 0) {
+                console.log('calculateXIRR - Invalid discount factor at iteration', i);
+                return 0;
+            }
 
             npv += cf.amount / discountFactor;
             dnpv -= (years * cf.amount) / (discountFactor * (1 + rate));
         }
 
+        // Check if derivative is too small (would cause huge rate changes)
+        if (Math.abs(dnpv) < 1e-10) {
+            console.log('calculateXIRR - Derivative too small at iteration', i, 'dnpv:', dnpv);
+            return 0;
+        }
+
         const newRate = rate - npv / dnpv;
 
+        if (i < 5 || i % 10 === 0) {
+            console.log(`  Iteration ${i}: rate=${rate.toFixed(6)}, npv=${npv.toFixed(2)}, dnpv=${dnpv.toFixed(2)}, newRate=${newRate.toFixed(6)}`);
+        }
+
+        // Validate new rate
+        if (!isFinite(newRate) || isNaN(newRate)) {
+            console.log('calculateXIRR - Invalid newRate at iteration', i, ':', newRate);
+            return 0;
+        }
+
+        // Check convergence
         if (Math.abs(newRate - rate) < tolerance) {
+            // Final validation: ensure rate is within reasonable bounds
+            if (newRate < minRate || newRate > maxRate) {
+                console.log('calculateXIRR - Rate out of bounds:', newRate, '(min:', minRate, 'max:', maxRate, ')');
+                return 0;
+            }
+            console.log('calculateXIRR - Converged at iteration', i, 'Final rate:', newRate);
             return newRate;
         }
 
-        rate = newRate;
+        // Bound the rate to prevent runaway calculations
+        rate = Math.max(minRate, Math.min(maxRate, newRate));
     }
 
-    return rate;
+    // Failed to converge within max iterations
+    console.log('calculateXIRR - Failed to converge after', maxIterations, 'iterations. Last rate:', rate);
+    return 0;
 }
 
 /**
@@ -103,30 +157,45 @@ export function prepareXIRRCashFlows(
 ): { date: Date; amount: number }[] {
     const cashFlows: { date: Date; amount: number }[] = [];
 
-    // Add all deposits and withdrawals (inverted signs for XIRR)
+    console.log('prepareXIRRCashFlows - Input transactions:', transactions.length);
+
+    // Add all deposits and withdrawals
+    // For XIRR: money IN is negative, money OUT is positive
     transactions.forEach(t => {
-        if (['DEPOSIT', 'TRANSFER'].includes(t.type) && t.amount < 0) {
-            // Money going into investment is negative for XIRR
+        if (t.type === 'DEPOSIT') {
+            // Deposits are money going INTO the investment (negative for XIRR)
+            const amount = -Math.abs(t.amount);
+            console.log('  DEPOSIT:', t.date, 'Amount:', t.amount, '=> Cash flow:', amount);
             cashFlows.push({
                 date: new Date(t.date),
-                amount: t.amount, // Already negative
+                amount: amount, // Make negative
             });
-        } else if (t.type === 'WITHDRAW' || (t.type === 'TRANSFER' && t.amount > 0)) {
-            // Money coming out is positive for XIRR
+        } else if (t.type === 'WITHDRAW') {
+            // Withdrawals are money coming OUT of the investment (positive for XIRR)
+            const amount = Math.abs(t.amount);
+            console.log('  WITHDRAW:', t.date, 'Amount:', t.amount, '=> Cash flow:', amount);
             cashFlows.push({
                 date: new Date(t.date),
-                amount: t.amount, // Already positive
+                amount: amount, // Make positive
             });
+        } else {
+            console.log('  Skipping', t.type, 'transaction');
         }
+        // Note: TRANSFER transactions are not included in portfolio XIRR
+        // as they are internal movements between accounts
     });
 
-    // Add current NAV as positive (liquidation value)
+    // Add current NAV as positive (represents liquidation value at current date)
     if (currentNAV > 0) {
+        console.log('  Current NAV:', currentDate.toISOString().split('T')[0], '=> Cash flow:', currentNAV);
         cashFlows.push({
             date: currentDate,
             amount: currentNAV,
         });
     }
+
+    console.log('prepareXIRRCashFlows - Total cash flows:', cashFlows.length);
+    console.log('prepareXIRRCashFlows - Cash flows:', JSON.stringify(cashFlows, null, 2));
 
     return cashFlows;
 }

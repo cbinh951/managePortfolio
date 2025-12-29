@@ -23,7 +23,10 @@ export default function MonthlyHeatmap({ monthlyReturns }: MonthlyHeatmapProps) 
 
     return (
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-6">Monthly Returns</h3>
+            <div>
+                <h3 className="text-lg font-semibold text-white">Monthly Returns</h3>
+                <p className="text-sm text-slate-400 mt-1 mb-6">Month-over-month performance • Each cell shows the return compared to the previous month</p>
+            </div>
 
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[600px]">

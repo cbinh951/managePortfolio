@@ -254,8 +254,8 @@ export default function ComparisonPage() {
                                 key={range}
                                 onClick={() => setTimeRange(range)}
                                 className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${timeRange === range
-                                        ? 'bg-blue-600 text-white shadow-lg'
-                                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                    ? 'bg-blue-600 text-white shadow-lg'
+                                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
                                     }`}
                             >
                                 {range}

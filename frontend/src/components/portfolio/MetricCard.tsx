@@ -67,7 +67,7 @@ export default function MetricCard({
                         <div className={`flex items-center gap-1 text-sm ${getTrendColor()}`}>
                             {getTrendIcon()}
                             <span className="font-medium">
-                                {change > 0 ? '+' : ''}{change}%
+                                {change > 0 ? '+' : ''}{change.toFixed(2)}%
                             </span>
                             {changeLabel && (
                                 <span className="text-slate-500 ml-1">{changeLabel}</span>
