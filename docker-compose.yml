@@ -1,27 +1,24 @@
 version: '3.8'
 
 services:
-  # Combined Frontend + Backend Application
   app:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://103.98.149.173:3001  # Build-time variable
     container_name: manage-portfolio
     restart: unless-stopped
     ports:
-      - "80:3000"      # Frontend on standard HTTP port
-      - "3001:3001"    # Backend API
+      - "80:3000"
+      - "3001:3001"
     volumes:
-      # Persist CSV data outside container
       - ./backend/data:/app/backend/data
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=http://103.98.149.173:3001  # Replace with actual IP
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 40s
-
-# No nginx needed for IP-only access
