@@ -127,7 +127,7 @@ export default function EditPortfolioModal({ isOpen, portfolio, onClose, onSucce
     };
 
     const handleClose = () => {
-        setFormData({ name: '', platform_id: '', strategy_id: '' });
+        setFormData({ name: '', platform_id: '', strategy_id: '', currency: 'VND' });
         setError(null);
         onClose();
     };
