@@ -18,12 +18,6 @@ services:
       - key: PORT
         value: 3000 # Main frontend port
     
-    # Persistent Disk for CSV Data
-    disk:
-      name: portfolio-data
-      mountPath: /app/backend/data
-      sizeGB: 1 # 1GB free tier
-    
     # Health Check
     healthCheckPath: /
     
@@ -35,3 +29,6 @@ services:
     
     # Start Command (handled by Dockerfile CMD)
     # Both services start via PM2: frontend (3000) + backend (3001)
+    
+    # NOTE: Persistent disk not available on free tier
+    # Data will reset on each deploy. For data persistence, upgrade to paid plan.

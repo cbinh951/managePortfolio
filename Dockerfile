@@ -82,15 +82,17 @@ RUN echo '{\
   ]\
 }' > ecosystem.config.json
 
-# Create startup script
-RUN echo '#!/bin/sh\n\
-# Start both services with PM2\n\
-pm2-runtime ecosystem.config.json' > start.sh && chmod +x start.sh
-
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S appuser -u 1001
 
+# Create startup script (after user creation)
+RUN echo '#!/bin/sh' > start.sh && \
+    echo '# Start both services with PM2' >> start.sh && \
+    echo 'pm2-runtime ecosystem.config.json' >> start.sh && \
+    chmod +x start.sh
+
+# Change ownership of all files
 RUN chown -R appuser:nodejs /app
 
 USER appuser

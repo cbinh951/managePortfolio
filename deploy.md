@@ -84,29 +84,36 @@ git push -u origin main
 5. Render will automatically detect `render.yaml`
 6. Click **"Apply"**
 
-#### 3. Configure Persistent Disk
+Render will automatically build and deploy your application!
 
-After the service is created:
+> [!WARNING]
+> **Free Tier Limitation**: Persistent disks are NOT available on the free tier. Your CSV data will be reset on each deployment. To persist data, you need to upgrade to a paid plan ($7/month) or use an external database.
+
+#### 3. (Optional) Add Persistent Disk for Data Storage
+
+**Only if you upgrade to a paid plan ($7/month):**
 
 1. Go to your service dashboard
 2. Navigate to **"Disks"** tab
 3. Add disk:
    - **Name**: `portfolio-data`
    - **Mount Path**: `/app/backend/data`
-   - **Size**: 1GB
+   - **Size**: 1GB (free with paid plan)
 4. Click **"Save"**
+5. The service will automatically restart with persistent storage
 
 #### 4. Set Environment Variables (Optional)
 
-If needed, add environment variables:
+If needed, customize environment variables:
 
 1. Go to **"Environment"** tab
-2. Add variables:
+2. Variables are already set from `render.yaml`:
    - `NODE_ENV` = `production`
    - `NEXT_PUBLIC_API_URL` = `http://localhost:3001`
-3. Click **"Save Changes"**
+3. Add/modify as needed
+4. Click **"Save Changes"**
 
-#### 5. Deploy
+#### 5. Monitor Deployment
 
 Render will automatically build and deploy your application. You can monitor progress in the **"Logs"** tab.
 
@@ -149,7 +156,12 @@ In the **Environment Variables** section:
 | `NODE_ENV` | `production` |
 | `NEXT_PUBLIC_API_URL` | `http://localhost:3001` |
 
-#### 4. Create Persistent Disk
+#### 4. (Optional) Create Persistent Disk - Requires Paid Plan
+
+> [!WARNING]
+> Persistent disks are only available on paid plans ($7/month minimum).
+
+If you upgrade to a paid plan:
 
 1. Scroll to **"Disk"** section
 2. Click **"Add Disk"**:
@@ -237,12 +249,61 @@ render logs
 | CPU | Shared (0.1 CPU) |
 | Bandwidth | 100 GB/month |
 | Build Minutes | 500 minutes/month |
-| Persistent Disk | Free (up to 1GB recommended) |
+| **Persistent Disk** | **❌ NOT included (paid only)** |
 | SSL/HTTPS | ✅ Free automatic |
 | Auto-deploy | ✅ Included |
 
 > [!NOTE]
 > Free tier services automatically sleep after 15 minutes of inactivity and wake up on the next request (may take 30-60 seconds).
+
+> [!IMPORTANT]
+> **Data Persistence on Free Tier**: CSV data stored in `/app/backend/data` will be lost on each deployment. See alternatives below.
+
+---
+
+## Data Persistence Alternatives (Free Tier)
+
+Since persistent disks aren't available on the free tier, here are your options:
+
+### Option 1: Upgrade to Paid Plan ($7/month)
+
+- **Starter Plan**: $7/month includes persistent disk
+- Keeps your data across deployments
+- No sleep on inactivity
+- Recommended for production use
+
+### Option 2: Use External Database (Free)
+
+Instead of CSV files, migrate to a free database:
+
+**PostgreSQL Options:**
+- **Render PostgreSQL**: Free tier (90-day expiration, then $7/month)
+- **Supabase**: 500MB free forever
+- **Neon**: 3GB free forever
+- **ElephantSQL**: 20MB free
+
+**MongoDB Options:**
+- **MongoDB Atlas**: 512MB free forever
+
+### Option 3: Accept Data Loss (Development Only)
+
+- Use free tier for testing/development
+- Understand data resets on each deploy
+- Not recommended for production
+
+### Option 4: Use Git for Data Backup
+
+Manually commit CSV files to git before deploying:
+
+```bash
+# Backup data before deploy
+git add backend/data/*.csv
+git commit -m "Backup data before deploy"
+git push
+```
+
+> [!CAUTION]
+> This approach is not scalable and mixes data with code. Use only for small datasets.
 
 ---
 
@@ -566,19 +627,45 @@ fly scale count 2
 
 ---
 
+## Platform Comparison
+
+| Feature | Render.com (Free) | Fly.io (Free) |
+|---------|-------------------|---------------|
+| **RAM** | 512 MB | 256 MB × 3 machines |
+| **CPU** | Shared (0.1 CPU) | Shared × 3 machines |
+| **Free Hours** | 750/month | Always on |
+| **Auto-sleep** | Yes (15 min) | No |
+| **Persistent Disk** | ❌ Paid only ($7/mo) | ✅ 3GB included |
+| **Setup Complexity** | Very Easy | Easy |
+| **Cold Start Speed** | 30-60s | 1-3s |
+| **Edge Deployment** | No | Yes (worldwide) |
+| **Auto-scaling** | Paid only | Limited free |
+| **Config File** | render.yaml | fly.toml |
+| **Best For** | Quick demos, testing | Production-ready free tier |
+
+> [!IMPORTANT]
+> **Key Difference**: Render's free tier does NOT include persistent disks, meaning your CSV data will be lost on each deployment. Fly.io includes 3GB of persistent storage for free, making it better for data persistence without upgrading.
+
+---
+
 ## Recommendation
 
 - **Choose Render** if you want:
-  - Simplest setup
+  - Simplest setup (Blueprint with render.yaml)
   - Don't mind slow cold starts
-  - Prefer web-based configuration
-  - Want Infrastructure as Code with render.yaml
+  - Willing to pay $7/month for data persistence
+  - Testing/development environment only
 
 - **Choose Fly.io** if you want:
-  - Faster response times
-  - Edge deployment
-  - More control over infrastructure
-  - Always-on free tier (with limits)
+  - **FREE data persistence** (3GB volumes included!)
+  - Faster response times (no auto-sleep)
+  - Edge deployment close to users
+  - Production-ready free tier
+
+**For this app specifically**: 
+- If you need persistent CSV data → **Fly.io** (free)
+- If you're just testing and don't care about data loss → **Render** (free)
+- If you want simplicity and willing to pay → **Render Paid** ($7/mo)
 
 Both platforms are excellent and support the exact same Docker configuration!
 
