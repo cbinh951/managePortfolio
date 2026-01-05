@@ -1,0 +1,37 @@
+services:
+  # Combined Frontend + Backend Web Service
+  - type: web
+    name: manage-portfolio
+    runtime: docker
+    region: oregon # Free tier region
+    plan: free # Free tier: 512 MB RAM, 0.1 CPU, 750 hours/month
+    branch: main # Deploy from main branch
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    
+    # Environment Variables
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        value: http://localhost:3001 # Internal communication between FE/BE
+      - key: PORT
+        value: 3000 # Main frontend port
+    
+    # Persistent Disk for CSV Data
+    disk:
+      name: portfolio-data
+      mountPath: /app/backend/data
+      sizeGB: 1 # 1GB free tier
+    
+    # Health Check
+    healthCheckPath: /
+    
+    # Auto-deploy on push
+    autoDeploy: true
+    
+    # Build Configuration
+    buildCommand: echo "Docker build handled by Dockerfile"
+    
+    # Start Command (handled by Dockerfile CMD)
+    # Both services start via PM2: frontend (3000) + backend (3001)
