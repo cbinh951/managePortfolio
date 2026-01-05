@@ -139,7 +139,7 @@ export function createTransactionRoutes(csvService: CsvService): Router {
                 { id: 'description', title: 'description' },
             ]);
 
-            const response: ApiResponse<typeof transactions[index]> = {
+            const response: ApiResponse<typeof transactions[number]> = {
                 success: true,
                 data: transactions[index],
                 message: 'Transaction updated successfully',

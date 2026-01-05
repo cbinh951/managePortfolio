@@ -91,18 +91,18 @@ Access the dashboard at: http://YOUR_VPS_IP:3000
 
 ### Step 7: Deploy Backend Service
 
+> **Note:** Both Frontend and Backend are in the same repository (monorepo). You'll deploy them as separate services pointing to the same repo but with different build paths.
+
 1. Inside your project, click **"Add Service"** → **"Application"**
 2. Configure:
    - **Name:** `backend`
-   - **Source:** Choose one:
-     - **Git:** Connect your GitHub/GitLab and select repo
-     - **Docker:** Use existing Dockerfile
+   - **Source:** **Git** → Connect your GitHub/GitLab
 
-3. If using Git:
+3. Git Configuration:
    - Repository: `your-username/managePortfolio`
    - Branch: `main`
-   - Build Path: `./backend`
-   - Dockerfile Path: `./backend/Dockerfile`
+   - Build Path: `/backend` (path to backend folder)
+   - Dockerfile Path: `./Dockerfile` (relative to Build Path)
 
 4. Go to **"Environment"** tab and add:
    ```
@@ -115,7 +115,16 @@ Access the dashboard at: http://YOUR_VPS_IP:3000
    - Port: `3001`
 
 6. Go to **"Advanced"** → **"Volumes"**:
-   - Add volume mount: `/app/data` (for data persistence)
+   - Click **"Add Mount"**
+   - Select **"Volume Mount"** (recommended for data persistence)
+   - Configure:
+     - **Volume Name:** `backend-data` (any name you prefer)
+     - **Mount Path:** `/app/data`
+   
+   > **Mount Types Explained:**
+   > - **Volume Mount:** Docker-managed storage, best for data persistence. Data survives container restarts/rebuilds.
+   > - **Bind Mount:** Maps to a specific host folder (e.g., `/home/user/data`). Use if you need direct host access.
+   > - **File Mount:** Mount a single file (e.g., config files).
 
 7. Click **"Deploy"**
 
@@ -124,13 +133,13 @@ Access the dashboard at: http://YOUR_VPS_IP:3000
 1. Click **"Add Service"** → **"Application"**
 2. Configure:
    - **Name:** `frontend`
-   - **Source:** Git or Docker
+   - **Source:** **Git** → Select the **same repository**
 
-3. If using Git:
-   - Repository: `your-username/managePortfolio`
+3. Git Configuration (same repo, different build path):
+   - Repository: `your-username/managePortfolio` (same repo)
    - Branch: `main`
-   - Build Path: `./frontend`
-   - Dockerfile Path: `./frontend/Dockerfile`
+   - Build Path: `/frontend` (path to frontend folder)
+   - Dockerfile Path: `./Dockerfile` (relative to Build Path)
 
 4. Go to **"Environment"** tab and add:
    ```
