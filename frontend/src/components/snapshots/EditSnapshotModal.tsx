@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Snapshot } from '@/types/models';
 import { useSettings } from '@/contexts/SettingsContext';
+import { apiClient } from '@/services/api';
 
 interface EditSnapshotModalProps {
     isOpen: boolean;
@@ -97,20 +98,11 @@ export default function EditSnapshotModal({
             setLoading(true);
             setError(null);
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/snapshots/${snapshot.snapshot_id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    date: formData.date,
-                    nav: parseFloat(formData.nav),
-                }),
-            });
 
-            if (!response.ok) {
-                throw new Error('Failed to update snapshot');
-            }
+            await apiClient.updateSnapshot(snapshot.snapshot_id, {
+                date: formData.date,
+                nav: parseFloat(formData.nav),
+            });
 
             onSuccess();
             onClose();

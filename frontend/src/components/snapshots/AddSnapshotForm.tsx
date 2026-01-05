@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useSettings } from '@/contexts/SettingsContext';
+import { apiClient } from '@/services/api';
 
 interface AddSnapshotFormProps {
     portfolioId: string;
@@ -76,21 +77,11 @@ export default function AddSnapshotForm({ portfolioId, onSuccess }: AddSnapshotF
             setLoading(true);
             setError(null);
 
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/snapshots`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    portfolio_id: portfolioId,
-                    date: formData.date,
-                    nav: parseFloat(formData.nav),
-                }),
+            await apiClient.createSnapshot({
+                portfolio_id: portfolioId,
+                date: formData.date,
+                nav: parseFloat(formData.nav),
             });
-
-            if (!response.ok) {
-                throw new Error('Failed to create snapshot');
-            }
 
             // Reset form
             setFormData({

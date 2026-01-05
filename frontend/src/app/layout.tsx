@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/layout/Sidebar";
 import { SettingsProvider } from "@/contexts/SettingsContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ClientLayout from "@/components/layout/ClientLayout";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,14 +20,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <SettingsProvider>
-          <div className="flex min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-            <Sidebar />
-            <div className="flex-1 ml-64">
+        <AuthProvider>
+          <SettingsProvider>
+            <ClientLayout>
               {children}
-            </div>
-          </div>
-        </SettingsProvider>
+            </ClientLayout>
+          </SettingsProvider>
+        </AuthProvider>
       </body>
     </html>
   );

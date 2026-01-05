@@ -1,10 +1,15 @@
+'use client';
+
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { useSettings } from '@/contexts/SettingsContext';
+import { formatCurrency } from '@/utils/currencyUtils';
 
 export interface AllocationItem {
     name: string;
     value: number;
     color: string;
     percentage: number;
+    [key: string]: any;
 }
 
 interface AllocationDonutChartProps {
@@ -12,6 +17,8 @@ interface AllocationDonutChartProps {
 }
 
 export default function AllocationDonutChart({ data }: AllocationDonutChartProps) {
+    const { settings } = useSettings();
+
     if (!data || data.length === 0) {
         return (
             <div className="flex items-center justify-center h-64 bg-slate-800/50 rounded-xl border border-slate-700">
@@ -24,10 +31,9 @@ export default function AllocationDonutChart({ data }: AllocationDonutChartProps
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 h-full flex flex-col">
             <div className="flex items-center justify-between mb-2">
                 <h3 className="text-lg font-semibold text-white">Current Allocation</h3>
-                <button className="text-sm text-blue-400 hover:text-blue-300 font-medium">Edit Strategy</button>
             </div>
 
-            <div className="flex-1 min-h-[300px] relative">
+            <div className="h-[220px] relative shrink-0">
                 {/* Center Stats */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                     <span className="text-slate-400 text-sm">Total Assets</span>
@@ -41,8 +47,8 @@ export default function AllocationDonutChart({ data }: AllocationDonutChartProps
                             data={data}
                             cx="50%"
                             cy="50%"
-                            innerRadius={80}
-                            outerRadius={110}
+                            innerRadius={70}
+                            outerRadius={90}
                             paddingAngle={5}
                             dataKey="value"
                         >
@@ -64,7 +70,7 @@ export default function AllocationDonutChart({ data }: AllocationDonutChartProps
                                                 {item.percentage.toFixed(1)}%
                                             </p>
                                             <p className="text-slate-400 text-xs">
-                                                {item.value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                                                {formatCurrency(item.value, 'VND', settings.displayCurrency, settings.exchangeRate)}
                                             </p>
                                         </div>
                                     );
@@ -76,22 +82,32 @@ export default function AllocationDonutChart({ data }: AllocationDonutChartProps
                 </ResponsiveContainer>
             </div>
 
-            {/* Custom Legend */}
-            <div className="grid grid-cols-2 gap-4 mt-6">
-                {data.map((item) => (
-                    <div key={item.name} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1 h-8 rounded-full" style={{ backgroundColor: item.color }}></div>
-                            <div>
-                                <p className="text-sm font-medium text-slate-300">{item.name}</p>
-                                <p className="text-xs text-slate-500">
-                                    {item.value.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}
-                                </p>
+            {/* Custom Legend - Scrollable List */}
+            <div className="flex-1 overflow-y-auto mt-4 pr-2 custom-scrollbar min-h-0">
+                <div className="space-y-3">
+                    {data.map((item) => (
+                        <div key={item.name} className="flex items-center justify-between group">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: item.color }}></div>
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm font-medium text-slate-300 truncate pr-2" title={item.name}>
+                                            {item.name}
+                                        </p>
+                                        <span className="text-sm font-bold text-white shrink-0">
+                                            {item.percentage.toFixed(1)}%
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-0.5">
+                                        <p className="text-xs text-slate-500 truncate">
+                                            {formatCurrency(item.value, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <span className="text-sm font-bold text-white">{item.percentage.toFixed(0)}%</span>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
         </div>
     );

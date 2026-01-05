@@ -22,7 +22,7 @@ export default function CreatePortfolioModal({
         platform_id: '',
         strategy_id: '',
         currency: 'VND',
-        initial_balance: '',
+
         start_date: '',
         description: '',
     });
@@ -106,7 +106,7 @@ export default function CreatePortfolioModal({
                 platform_id: '',
                 strategy_id: '',
                 currency: 'VND',
-                initial_balance: '',
+
                 start_date: '',
                 description: '',
             });
@@ -127,7 +127,7 @@ export default function CreatePortfolioModal({
             platform_id: '',
             strategy_id: '',
             currency: 'VND',
-            initial_balance: '',
+
             start_date: '',
             description: '',
         });
@@ -314,28 +314,7 @@ export default function CreatePortfolioModal({
                                     </div>
                                 </div>
 
-                                {/* Initial Balance / NAV (Optional for now) */}
-                                <div>
-                                    <label htmlFor="initial_balance" className="block text-sm font-medium text-slate-300 mb-2">
-                                        Initial Balance / NAV <span className="text-slate-500 text-xs">(Optional)</span>
-                                    </label>
-                                    <div className="relative">
-                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-                                        <input
-                                            type="number"
-                                            id="initial_balance"
-                                            name="initial_balance"
-                                            value={formData.initial_balance}
-                                            onChange={handleChange}
-                                            placeholder="0.00"
-                                            step="0.01"
-                                            min="0"
-                                            className="w-full pl-8 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                            disabled={loading}
-                                        />
-                                    </div>
-                                    <p className="text-xs text-slate-500 mt-1">Starting value of the portfolio</p>
-                                </div>
+
 
                                 {/* Description */}
                                 <div>

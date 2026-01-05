@@ -26,22 +26,11 @@ export default function AssetAllocationPage() {
             let totalWorth = 0;
             let cashTotal = 0;
 
-            // Map for aggregation: AssetType -> Value
-            const typeAggregation = new Map<string, number>();
+            // Map for aggregation: Name -> Value
+            const items: AllocationItem[] = [];
+            const processedPortfolios = new Set<string>();
 
             // Process Portfolios
-            // Since Portfolio model doesn't strictly have 'Asset Type' on the root object in all API responses (it might be in 'asset' relation),
-            // and types/models.ts shows Portfolio has asset_id. 
-            // For now, we'll try to guess/mock or use what is available. 
-            // Ideally, the API should return 'type' or 'asset_class'.
-            // Based on models, Portfolio has no direct 'type'. 
-            // We will make a safe assumption: 
-            // - If name contains "Stock", "Equity" -> Stocks
-            // - If name contains "Bond" -> Bonds
-            // - Else -> "Other"
-            // *Real implementation would need relation expansion*
-
-            // For this demo, let's fetch full details or assume logic
             for (const p of portfolios) {
                 // Get performance for current value
                 try {
@@ -49,54 +38,59 @@ export default function AssetAllocationPage() {
                     const val = perf.current_nav;
                     totalWorth += val;
 
-                    // Rudimentary categorization for demo purposes
-                    let type = 'Other';
-                    const nameLower = p.name.toLowerCase();
-                    if (nameLower.includes('stock') || nameLower.includes('equity') || nameLower.includes('tech')) type = 'Stocks';
-                    else if (nameLower.includes('bond') || nameLower.includes('fixed')) type = 'Bonds';
-                    else if (nameLower.includes('gold') || nameLower.includes('crypto')) type = 'Alternatives';
-                    else if (nameLower.includes('etf')) type = 'ETFs';
+                    // Use actual portfolio name
+                    items.push({
+                        name: p.name,
+                        value: val,
+                        percentage: 0, // Will calc later
+                        color: '' // Will assign later
+                    });
 
-                    typeAggregation.set(type, (typeAggregation.get(type) || 0) + val);
                 } catch (e) {
                     console.error("Failed to load perf for", p.name);
                 }
             }
 
             // Process Cash Accounts
+            let cashTotalAll = 0;
             for (const c of cashAccounts) {
                 try {
                     const bal = await apiClient.getCashAccountBalance(c.cash_account_id);
                     const val = bal.balance;
                     totalWorth += val;
                     cashTotal += val;
-
-                    typeAggregation.set('Cash & Equiv.', (typeAggregation.get('Cash & Equiv.') || 0) + val);
+                    cashTotalAll += val;
                 } catch (e) {
                     console.error("Failed to load balance for", c.name);
                 }
             }
 
+            // Add aggregate Cash entry if there is any cash
+            if (cashTotalAll > 0) {
+                items.push({
+                    name: 'Cash & Equivalents',
+                    value: cashTotalAll,
+                    percentage: 0,
+                    color: '#64748b' // Slate for cash
+                });
+            }
+
             setTotalNetWorth(totalWorth);
             setTotalCash(cashTotal);
 
-            // Convert map to AllocationItem[]
-            const colors = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#64748b'];
-            let colorIdx = 0;
-
-            const items: AllocationItem[] = [];
-            typeAggregation.forEach((value, key) => {
-                items.push({
-                    name: key,
-                    value: value,
-                    percentage: totalWorth > 0 ? (value / totalWorth) * 100 : 0,
-                    color: colors[colorIdx % colors.length]
-                });
-                colorIdx++;
-            });
+            // Assign percentages and colors from palette
+            const colors = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#84cc16'];
 
             // Sort by value desc
             items.sort((a, b) => b.value - a.value);
+
+            // Assign colors
+            items.forEach((item, index) => {
+                item.percentage = totalWorth > 0 ? (item.value / totalWorth) * 100 : 0;
+                if (item.name !== 'Cash & Equivalents') {
+                    item.color = colors[index % colors.length];
+                }
+            });
 
             setAllocationData(items);
 
@@ -184,56 +178,8 @@ export default function AssetAllocationPage() {
 
                 {/* Charts Area */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-1 h-[450px]">
+                    <div className="lg:col-span-3 h-[450px]">
                         <AllocationDonutChart data={allocationData} />
-                    </div>
-                    {/* Target vs Actual (Placeholder for now, simplified as a card or future component) */}
-                    <div className="lg:col-span-2 bg-slate-800/50 border border-slate-700 rounded-xl p-6 relative">
-                        <h3 className="text-lg font-semibold text-white mb-6">Target vs. Actual</h3>
-
-                        {/* Mock Stacked Bar for visual match */}
-                        <div className="space-y-8">
-                            <div>
-                                <div className="flex justify-between text-sm mb-2">
-                                    <span className="text-slate-400">Your Target Strategy</span>
-                                    <span className="text-slate-300">Conservative Growth</span>
-                                </div>
-                                <div className="h-4 w-full rounded-full flex overflow-hidden">
-                                    <div className="w-[50%] bg-blue-500"></div>
-                                    <div className="w-[25%] bg-purple-500"></div>
-                                    <div className="w-[15%] bg-teal-500"></div>
-                                    <div className="w-[10%] bg-slate-500"></div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <div className="flex justify-between text-sm mb-2">
-                                    <span className="text-slate-400">Current Reality</span>
-                                    <span className="text-orange-400">Needs Rebalancing</span>
-                                </div>
-                                <div className="h-4 w-full rounded-full flex overflow-hidden">
-                                    {allocationData.map((item) => (
-                                        <div
-                                            key={item.name}
-                                            style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                                        ></div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="mt-8 bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 flex gap-4">
-                                <div className="shrink-0 text-blue-400 mt-1">
-                                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
-                                </div>
-                                <div>
-                                    <h4 className="text-blue-200 font-medium mb-1">Cash Drag Detected</h4>
-                                    <p className="text-sm text-blue-300/80">
-                                        Your cash position is {((totalCash / totalNetWorth) * 100).toFixed(0)}% of your portfolio.
-                                        Consider deploying excess capital into Stocks or Bonds to align with your strategy.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
 

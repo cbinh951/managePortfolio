@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NavItem {
     name: string;
@@ -13,6 +14,7 @@ interface NavItem {
 export default function Sidebar() {
     const pathname = usePathname();
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    const { logout } = useAuth();
 
     const navItems: NavItem[] = [
         {
@@ -180,17 +182,26 @@ export default function Sidebar() {
                     })}
                 </nav>
 
-                {/* User Section */}
+                {/* User Section with Logout */}
                 <div className="p-4 border-t border-slate-800">
-                    <div className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer">
+                    <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-800">
                         <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                            <span className="text-white text-sm font-semibold">A</span>
+                            <span className="text-white text-sm font-semibold">B</span>
                         </div>
                         <div className="flex-1">
-                            <p className="text-white text-sm font-medium">Alex Morgan</p>
-                            <p className="text-slate-400 text-xs">View Profile</p>
+                            <p className="text-white text-sm font-medium">Binh Pham</p>
+                            <p className="text-slate-400 text-xs">Administrator</p>
                         </div>
                     </div>
+                    <button
+                        onClick={logout}
+                        className="w-full mt-3 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Logout
+                    </button>
                 </div>
             </aside>
         </>

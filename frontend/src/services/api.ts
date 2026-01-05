@@ -87,6 +87,13 @@ class ApiClient {
         return response.data.data;
     }
 
+    async deletePortfolio(id: string): Promise<void> {
+        const response = await this.client.delete<ApiResponse<{ message: string }>>(`/portfolios/${id}`);
+        if (!response.data.success) {
+            throw new Error(response.data.error || 'Failed to delete portfolio');
+        }
+    }
+
     // Cash Accounts
     async getCashAccounts(): Promise<CashAccount[]> {
         const response = await this.client.get<ApiResponse<CashAccount[]>>('/cash-accounts');
@@ -207,6 +214,21 @@ class ApiClient {
             throw new Error(response.data.error || 'Failed to create snapshot');
         }
         return response.data.data;
+    }
+
+    async updateSnapshot(id: string, data: { date?: string; nav?: number }): Promise<Snapshot> {
+        const response = await this.client.put<ApiResponse<Snapshot>>(`/snapshots/${id}`, data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to update snapshot');
+        }
+        return response.data.data;
+    }
+
+    async deleteSnapshot(id: string): Promise<void> {
+        const response = await this.client.delete<ApiResponse<{ message: string }>>(`/snapshots/${id}`);
+        if (!response.data.success) {
+            throw new Error(response.data.error || 'Failed to delete snapshot');
+        }
     }
 
     // Master Data

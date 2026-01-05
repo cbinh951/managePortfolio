@@ -112,29 +112,8 @@ export default function PerformanceTab({ xirr, totalReturn, snapshots = [], load
             <p className="text-slate-400 -mt-4 mb-6">Detailed analysis of your portfolio&apos;s growth, risk metrics, and returns over time.</p>
 
             {/* Top Cards Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Net Worth (Latest NAV) */}
-                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <svg className="w-24 h-24 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z" /><path d="M12 6a1 1 0 0 0-1 1v4.59L8.71 8.3a1 1 0 0 0-1.42 1.42l4 4a1 1 0 0 0 1.42 0l4-4a1 1 0 0 0-1.42-1.42L13 11.59V7a1 1 0 0 0-1-1z" /></svg>
-                    </div>
-                    <div className="relative z-10">
-                        <div className="text-slate-400 text-sm font-medium mb-1">Current NAV</div>
-                        <div className="text-2xl font-bold text-white mb-2">
-                            {snapshots.length > 0
-                                ? sortedSnapshots[sortedSnapshots.length - 1].nav.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) // Assuming USD mostly, or needs context
-                                : '$0.00'
-                            }
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                            <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded">
-                                {snapshots.length} Snapshots
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Total Gain/Loss */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Total Return */}
                 <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10">
                         <svg className="w-24 h-24 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z" /></svg>
@@ -155,8 +134,8 @@ export default function PerformanceTab({ xirr, totalReturn, snapshots = [], load
                     </div>
                     <div className="relative z-10">
                         <div className="text-slate-400 text-sm font-medium mb-1">XIRR (Annualized)</div>
-                        <div className={`text-2xl font-bold mb-2 ${xirr !== null && xirr >= 0 ? 'text-purple-400' : 'text-red-400'}`}>
-                            {xirr !== null ? `${xirr > 0 ? '+' : ''}${formatXIRR(xirr)}%` : '--'}
+                        <div className={`text-2xl font-bold mb-2 ${xirr !== null && xirr !== undefined && xirr >= 0 ? 'text-purple-400' : 'text-red-400'}`}>
+                            {xirr !== null && xirr !== undefined ? `${xirr > 0 ? '+' : ''}${xirr.toFixed(2)}%` : '--'}
                         </div>
                         <div className="text-xs text-slate-400">Internal Rate of Return</div>
                     </div>
@@ -165,11 +144,14 @@ export default function PerformanceTab({ xirr, totalReturn, snapshots = [], load
 
             {/* Main Chart Section */}
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
                     <div>
                         <h3 className="text-lg font-semibold text-white">Portfolio Growth</h3>
+                        <p className="text-sm text-slate-400 mt-1">
+                            Cumulative return from baseline • Shows total growth since {timeRange === 'ALL' ? 'inception' : 'period start'}
+                        </p>
                         <p className="text-sm text-slate-400">
-                            Cumulative return over selected period:
+                            Current period return:
                             <span className={`ml-2 font-bold ${periodReturn >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {periodReturn > 0 ? '+' : ''}{periodReturn.toFixed(2)}%
                             </span>

@@ -24,6 +24,8 @@ export const calculateMonthlyReturns = (snapshots: Snapshot[]): MonthlyReturn[] 
     // Sort snapshots by date ascending
     const sorted = [...snapshots].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+    console.log('calculateMonthlyReturns - Sorted snapshots:', sorted.map(s => ({ date: s.date, nav: s.nav })));
+
     // Group snapshots by month to find the starting and ending nav for each month
     // Strategy: For each month, find the last snapshot of that month. 
     // Return = (End of Month NAV - End of Previous Month NAV) / End of Previous Month NAV
@@ -40,8 +42,22 @@ export const calculateMonthlyReturns = (snapshots: Snapshot[]): MonthlyReturn[] 
         }
     });
 
+    console.log('calculateMonthlyReturns - Snapshots by month:');
+    snapshotsByMonth.forEach((snapshot, key) => {
+        console.log(`  ${key}:`, { date: snapshot.date, nav: snapshot.nav });
+    });
+
     const monthlyReturns: MonthlyReturn[] = [];
-    const keys = Array.from(snapshotsByMonth.keys()).sort(); // Chronological order of months
+    // Sort keys chronologically, not alphabetically!
+    // Keys are in format "YYYY-M" where M is 0-11
+    const keys = Array.from(snapshotsByMonth.keys()).sort((a, b) => {
+        const [yearA, monthA] = a.split('-').map(Number);
+        const [yearB, monthB] = b.split('-').map(Number);
+        if (yearA !== yearB) return yearA - yearB;
+        return monthA - monthB;
+    });
+
+    console.log('calculateMonthlyReturns - Month keys (sorted chronologically):', keys);
 
     for (let i = 1; i < keys.length; i++) {
         const currentKey = keys[i];
@@ -59,12 +75,21 @@ export const calculateMonthlyReturns = (snapshots: Snapshot[]): MonthlyReturn[] 
             : 0;
 
         const date = new Date(currentSnapshot.date);
+
+        console.log(`  Return for ${date.getFullYear()}-${date.getMonth()} (${currentSnapshot.date}):`, {
+            prevNAV: prevSnapshot.nav,
+            currentNAV: currentSnapshot.nav,
+            return: returnVal.toFixed(2) + '%'
+        });
+
         monthlyReturns.push({
             year: date.getFullYear(),
             month: date.getMonth(),
             value: returnVal
         });
     }
+
+    console.log('calculateMonthlyReturns - Final returns:', monthlyReturns);
 
     return monthlyReturns;
 };

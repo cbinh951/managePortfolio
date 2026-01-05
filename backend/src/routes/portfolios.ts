@@ -141,5 +141,27 @@ export function createPortfolioRoutes(csvService: CsvService): Router {
         }
     });
 
+    // Delete portfolio
+    router.delete('/:id', async (req: Request, res: Response) => {
+        try {
+            await portfolioService.deletePortfolio(req.params.id);
+            const response: ApiResponse<{ message: string }> = {
+                success: true,
+                data: { message: 'Portfolio deleted successfully' },
+            };
+            res.json(response);
+        } catch (error) {
+            const response: ApiResponse<null> = {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+            };
+            if (error instanceof Error && error.message === 'Portfolio not found') {
+                res.status(404).json(response);
+            } else {
+                res.status(500).json(response);
+            }
+        }
+    });
+
     return router;
 }
