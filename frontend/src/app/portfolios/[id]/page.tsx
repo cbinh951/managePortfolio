@@ -17,6 +17,7 @@ import EditTransactionModal from '@/components/transaction/EditTransactionModal'
 import DeleteTransactionModal from '@/components/transaction/DeleteTransactionModal';
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatCurrency } from '@/utils/currencyUtils';
+import { formatXIRR } from '@/utils/performanceUtils';
 
 
 interface PortfolioDetailData {
@@ -299,7 +300,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                     {isPortfolio && xirr !== null && (
                         <MetricCard
                             label="XIRR"
-                            value={`${xirr.toFixed(2)}%`}
+                            value={`${formatXIRR(xirr)}%`}
                             trend={xirr >= 0 ? 'up' : 'down'}
                             valueColor={xirr >= 0 ? 'text-emerald-400' : 'text-red-400'}
                         />

@@ -16,6 +16,7 @@ import AssetTypeBadge from '@/components/common/AssetTypeBadge';
 import type { PortfolioRow } from '@/app/portfolios/page';
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatCurrency } from '@/utils/currencyUtils';
+import { formatXIRR } from '@/utils/performanceUtils';
 
 interface PortfolioTableProps {
     data: PortfolioRow[];
@@ -91,7 +92,7 @@ export default function PortfolioTable({ data }: PortfolioTableProps) {
             header: 'XIRR',
             cell: ({ row }) =>
                 row.original.xirr !== null ? (
-                    <span className="font-semibold text-amber-400">{row.original.xirr.toFixed(2)}%</span>
+                    <span className="font-semibold text-amber-400">{formatXIRR(row.original.xirr)}%</span>
                 ) : (
                     <span className="text-slate-500">—</span>
                 ),

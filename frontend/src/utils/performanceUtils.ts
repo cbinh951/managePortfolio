@@ -129,3 +129,27 @@ export const calculateRiskMetrics = (snapshots: Snapshot[]): RiskMetrics => {
         worstMonth
     };
 };
+
+/**
+ * Safely format XIRR percentage to 2 decimal places
+ * Handles extreme values and invalid numbers
+ */
+export const formatXIRR = (xirr: number | null | undefined): string => {
+    // Handle null/undefined
+    if (xirr === null || xirr === undefined || isNaN(xirr)) {
+        return '0.00';
+    }
+
+    // Handle extreme values (cap at reasonable bounds)
+    // XIRR is typically between -100% and a few hundred percent
+    // Values outside this range indicate calculation errors
+    if (xirr > 1000) {
+        return '999.99'; // Cap extremely high values
+    }
+    if (xirr < -100) {
+        return '-100.00'; // Cap extremely low values
+    }
+
+    // Round to 2 decimal places
+    return xirr.toFixed(2);
+};

@@ -162,6 +162,8 @@ function groupTransfers(
 export default function TransactionTable({ transactions, portfolios, loading = false, onEdit, onDelete }: TransactionTableProps) {
     const { settings } = useSettings();
     const [currentPage, setCurrentPage] = useState(1);
+    const [sortColumn, setSortColumn] = useState<'date' | 'type' | 'amount'>('date');
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
     const itemsPerPage = 10;
 
     if (loading) {
@@ -191,11 +193,61 @@ export default function TransactionTable({ transactions, portfolios, loading = f
     // Group transfers
     const consolidatedTransactions = groupTransfers(transactions, portfolios);
 
+    // Sort transactions
+    const sortedTransactions = [...consolidatedTransactions].sort((a, b) => {
+        let comparison = 0;
+
+        switch (sortColumn) {
+            case 'date':
+                comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+                break;
+            case 'type':
+                comparison = a.type.localeCompare(b.type);
+                break;
+            case 'amount':
+                comparison = Math.abs(a.amount) - Math.abs(b.amount);
+                break;
+        }
+
+        return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
     // Pagination calculation
-    const totalPages = Math.ceil(consolidatedTransactions.length / itemsPerPage);
+    const totalPages = Math.ceil(sortedTransactions.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const currentPageTransactions = consolidatedTransactions.slice(startIndex, endIndex);
+    const currentPageTransactions = sortedTransactions.slice(startIndex, endIndex);
+
+    const handleSort = (column: 'date' | 'type' | 'amount') => {
+        if (sortColumn === column) {
+            // Toggle direction if clicking the same column
+            setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+        } else {
+            // Set new column with default descending for date, ascending for others
+            setSortColumn(column);
+            setSortDirection(column === 'date' ? 'desc' : 'asc');
+        }
+        setCurrentPage(1); // Reset to first page when sorting changes
+    };
+
+    const SortIcon = ({ column }: { column: 'date' | 'type' | 'amount' }) => {
+        if (sortColumn !== column) {
+            return (
+                <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+            );
+        }
+        return sortDirection === 'asc' ? (
+            <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+            </svg>
+        ) : (
+            <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+        );
+    };
 
     const getAmountDisplay = (transaction: ConsolidatedTransaction) => {
         let colorClass = 'text-slate-300';
@@ -226,20 +278,38 @@ export default function TransactionTable({ transactions, portfolios, loading = f
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-slate-700">
-                            <th className="text-left py-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                Date
+                            <th
+                                className="text-left py-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 select-none"
+                                onClick={() => handleSort('date')}
+                            >
+                                <div className="flex items-center gap-2">
+                                    Date
+                                    <SortIcon column="date" />
+                                </div>
                             </th>
                             <th className="text-left py-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                 Portfolio
                             </th>
-                            <th className="text-left py-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                Type
+                            <th
+                                className="text-left py-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 select-none"
+                                onClick={() => handleSort('type')}
+                            >
+                                <div className="flex items-center gap-2">
+                                    Type
+                                    <SortIcon column="type" />
+                                </div>
                             </th>
                             <th className="text-left py-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                 Asset / Description
                             </th>
-                            <th className="text-right py-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                Amount
+                            <th
+                                className="text-right py-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 select-none"
+                                onClick={() => handleSort('amount')}
+                            >
+                                <div className="flex items-center justify-end gap-2">
+                                    Amount
+                                    <SortIcon column="amount" />
+                                </div>
                             </th>
                             {(onEdit || onDelete) && (
                                 <th className="text-right py-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -330,7 +400,7 @@ export default function TransactionTable({ transactions, portfolios, loading = f
             {/* Pagination Footer */}
             <div className="border-t border-slate-700 px-6 py-4 flex items-center justify-between">
                 <div className="text-sm text-slate-400">
-                    Showing {startIndex + 1}-{Math.min(endIndex, consolidatedTransactions.length)} of {consolidatedTransactions.length} transaction{consolidatedTransactions.length !== 1 ? 's' : ''}
+                    Showing {startIndex + 1}-{Math.min(endIndex, sortedTransactions.length)} of {sortedTransactions.length} transaction{sortedTransactions.length !== 1 ? 's' : ''}
                 </div>
 
                 {totalPages > 1 && (

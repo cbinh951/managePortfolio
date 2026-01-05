@@ -7,6 +7,7 @@ import { formatCurrency } from '@/utils/currencyUtils';
 import KPICard from '@/components/common/KPICard';
 import NetWorthChart from '@/components/charts/NetWorthChart';
 import AllocationChart from '@/components/charts/AllocationChart';
+import { formatXIRR } from '@/utils/performanceUtils';
 
 // Icons as SVG components
 const WalletIcon = () => (
@@ -137,7 +138,7 @@ export default function Home() {
               />
               <KPICard
                 title="Overall XIRR"
-                value={`${overallXIRR.toFixed(2)}%`}
+                value={`${formatXIRR(overallXIRR)}%`}
                 change={10.5}
                 changeLabel="Annualized"
                 icon={<PercentIcon />}

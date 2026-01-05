@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import MonthlyHeatmap from '@/components/portfolio/MonthlyHeatmap';
 import RiskMetrics from '@/components/portfolio/RiskMetrics';
-import { calculateMonthlyReturns, calculateRiskMetrics } from '@/utils/performanceUtils';
+import { calculateMonthlyReturns, calculateRiskMetrics, formatXIRR } from '@/utils/performanceUtils';
 
 interface PerformanceTabProps {
     xirr: number | null;
@@ -156,7 +156,7 @@ export default function PerformanceTab({ xirr, totalReturn, snapshots = [], load
                     <div className="relative z-10">
                         <div className="text-slate-400 text-sm font-medium mb-1">XIRR (Annualized)</div>
                         <div className={`text-2xl font-bold mb-2 ${xirr !== null && xirr >= 0 ? 'text-purple-400' : 'text-red-400'}`}>
-                            {xirr !== null ? `${xirr > 0 ? '+' : ''}${xirr.toFixed(2)}%` : '--'}
+                            {xirr !== null ? `${xirr > 0 ? '+' : ''}${formatXIRR(xirr)}%` : '--'}
                         </div>
                         <div className="text-xs text-slate-400">Internal Rate of Return</div>
                     </div>

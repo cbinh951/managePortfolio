@@ -7,6 +7,7 @@ import KPICard from '@/components/common/KPICard';
 import CreatePortfolioModal from '@/components/portfolio/CreatePortfolioModal';
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatCurrency } from '@/utils/currencyUtils';
+import { formatXIRR } from '@/utils/performanceUtils';
 
 // Icons
 const TrendUpIcon = () => (
@@ -170,7 +171,7 @@ export default function PortfoliosPage() {
                     />
                     <KPICard
                         title="Average XIRR"
-                        value={`${data.averageXIRR.toFixed(2)}%`}
+                        value={`${formatXIRR(data.averageXIRR)}%`}
                         change={1.2}
                         changeLabel="Annualized"
                         icon={<PercentIcon />}
