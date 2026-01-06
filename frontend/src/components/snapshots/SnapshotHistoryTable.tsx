@@ -137,7 +137,7 @@ export default function SnapshotHistoryTable({ snapshots, loading = false, onUpd
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-white">History</h3>
-                    <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+                    <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer">
                         View Full Page
                     </button>
                 </div>
@@ -226,7 +226,7 @@ export default function SnapshotHistoryTable({ snapshots, loading = false, onUpd
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
                                                     onClick={() => handleEditClick(snapshot)}
-                                                    className="p-1.5 hover:bg-slate-600 rounded transition-colors"
+                                                    className="p-1.5 hover:bg-slate-600 rounded transition-colors cursor-pointer"
                                                     title="Edit snapshot"
                                                 >
                                                     <svg className="w-4 h-4 text-slate-400 hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -235,7 +235,7 @@ export default function SnapshotHistoryTable({ snapshots, loading = false, onUpd
                                                 </button>
                                                 <button
                                                     onClick={() => handleDeleteClick(snapshot)}
-                                                    className="p-1.5 hover:bg-red-600/20 rounded transition-colors"
+                                                    className="p-1.5 hover:bg-red-600/20 rounded transition-colors cursor-pointer"
                                                     title="Delete snapshot"
                                                     disabled={deleting}
                                                 >

@@ -35,3 +35,17 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #64748b;
 }
+
+/* Ensure all interactive elements have pointer cursor */
+button,
+[role="button"],
+.cursor-pointer,
+a {
+  cursor: pointer;
+}
+
+/* Interactive icons */
+svg[onclick],
+svg.clickable {
+  cursor: pointer;
+}
