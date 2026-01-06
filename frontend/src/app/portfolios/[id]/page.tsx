@@ -103,17 +103,16 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
     };
 
     const handleDelete = async () => {
-        if (!confirm('Are you sure you want to delete this portfolio? This action cannot be undone.')) return;
+        const entityName = data?.type === 'cash' ? 'cash account' : 'portfolio';
+        if (!confirm(`Are you sure you want to delete this ${entityName}? This action cannot be undone.`)) return;
 
         try {
             if (data?.type === 'portfolio') {
                 await apiClient.deletePortfolio(id);
             } else if (data?.type === 'cash') {
-                // Assuming deleteCashAccount exists or will exist, for now basic implementation for portfolio
-                // await apiClient.deleteCashAccount(id); 
-                // For now, focusing on portfolio as per request
+                await apiClient.deleteCashAccount(id);
             }
-            router.push('/');
+            router.push(data?.type === 'cash' ? '/cash-accounts' : '/portfolios');
         } catch (err) {
             console.error('Failed to delete:', err);
             alert('Failed to delete. Please try again.');

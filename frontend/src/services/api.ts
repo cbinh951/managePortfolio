@@ -137,6 +137,13 @@ class ApiClient {
         return response.data.data;
     }
 
+    async deleteCashAccount(id: string): Promise<void> {
+        const response = await this.client.delete<ApiResponse<{ message: string }>>(`/cash-accounts/${id}`);
+        if (!response.data.success) {
+            throw new Error(response.data.error || 'Failed to delete cash account');
+        }
+    }
+
     // Transactions
     async getTransactions(): Promise<Transaction[]> {
         const response = await this.client.get<ApiResponse<Transaction[]>>('/transactions');
