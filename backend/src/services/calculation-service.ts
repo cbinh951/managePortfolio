@@ -37,7 +37,6 @@ export function calculateXIRR(
     const firstDate = sorted[0].date;
 
     let rate = guess;
-    console.log('calculateXIRR - Starting rate:', rate);
 
     for (let i = 0; i < maxIterations; i++) {
         let npv = 0;
@@ -54,7 +53,6 @@ export function calculateXIRR(
 
             // Check for invalid discount factor
             if (!isFinite(discountFactor) || discountFactor === 0) {
-                console.log('calculateXIRR - Invalid discount factor at iteration', i);
                 return 0;
             }
 
@@ -64,7 +62,6 @@ export function calculateXIRR(
 
         // Check if derivative is too small (would cause huge rate changes)
         if (Math.abs(dnpv) < 1e-10) {
-            console.log('calculateXIRR - Derivative too small at iteration', i, 'dnpv:', dnpv);
             return 0;
         }
 
@@ -76,7 +73,6 @@ export function calculateXIRR(
 
         // Validate new rate
         if (!isFinite(newRate) || isNaN(newRate)) {
-            console.log('calculateXIRR - Invalid newRate at iteration', i, ':', newRate);
             return 0;
         }
 
@@ -84,10 +80,8 @@ export function calculateXIRR(
         if (Math.abs(newRate - rate) < tolerance) {
             // Final validation: ensure rate is within reasonable bounds
             if (newRate < minRate || newRate > maxRate) {
-                console.log('calculateXIRR - Rate out of bounds:', newRate, '(min:', minRate, 'max:', maxRate, ')');
                 return 0;
             }
-            console.log('calculateXIRR - Converged at iteration', i, 'Final rate:', newRate);
             return newRate;
         }
 
@@ -96,7 +90,6 @@ export function calculateXIRR(
     }
 
     // Failed to converge within max iterations
-    console.log('calculateXIRR - Failed to converge after', maxIterations, 'iterations. Last rate:', rate);
     return 0;
 }
 
