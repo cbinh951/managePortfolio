@@ -1,34 +1,55 @@
 services:
-  # Combined Frontend + Backend Web Service
+  # ============================================
+  # Backend API Service
+  # ============================================
   - type: web
-    name: manage-portfolio
-    runtime: docker
-    region: oregon # Free tier region
-    plan: free # Free tier: 512 MB RAM, 0.1 CPU, 750 hours/month
-    branch: main # Deploy from main branch
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
+    name: manage-portfolio-api
+    runtime: node
+    region: oregon
+    plan: free
+    branch: main
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/server.js
+    healthCheckPath: /health
+    autoDeploy: true
     
-    # Environment Variables
     envVars:
       - key: NODE_ENV
         value: production
-      - key: NEXT_PUBLIC_API_URL
-        value: http://localhost:3001 # Internal communication between FE/BE
       - key: PORT
-        value: 3000 # Main frontend port
-    
-    # Health Check
+        value: 10000
+      - key: DATA_PATH
+        value: ./data
+      # CORS - allow frontend origin
+      - key: CORS_ORIGIN
+        value: https://manage-portfolio-fe.onrender.com
+
+  # ============================================
+  # Frontend Web Service  
+  # ============================================
+  - type: web
+    name: manage-portfolio-fe
+    runtime: node
+    region: oregon
+    plan: free
+    branch: main
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
     healthCheckPath: /
-    
-    # Auto-deploy on push
     autoDeploy: true
     
-    # Build Configuration
-    buildCommand: echo "Docker build handled by Dockerfile"
-    
-    # Start Command (handled by Dockerfile CMD)
-    # Both services start via PM2: frontend (3000) + backend (3001)
-    
-    # NOTE: Persistent disk not available on free tier
-    # Data will reset on each deploy. For data persistence, upgrade to paid plan.
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      # Point to the backend API service URL
+      - key: NEXT_PUBLIC_API_URL
+        value: https://manage-portfolio-api.onrender.com
+
+# NOTE: 
+# - Free tier: Data stored in CSV files will reset on each deploy
+# - For data persistence, consider upgrading to paid plan with persistent disk
+# - Or migrate to Supabase/PostgreSQL for database storage

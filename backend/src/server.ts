@@ -16,8 +16,16 @@ const app: Express = express();
 const PORT = process.env.PORT || 3001;
 const DATA_PATH = process.env.DATA_PATH || './data';
 
+// CORS Configuration
+const corsOptions = {
+    origin: process.env.CORS_ORIGIN || '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
