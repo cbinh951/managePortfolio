@@ -74,9 +74,9 @@ export default function AddTransactionModal({
                 date: formData.date,
                 type: formData.type,
                 amount: parseFloat(formData.amount),
-                portfolio_id: portfolioId,
-                cash_account_id: cashAccountId || '',
-                description: formData.description,
+                portfolio_id: portfolioId || undefined,
+                cash_account_id: cashAccountId || undefined,
+                description: formData.description || undefined,
             });
 
             // Reset form

@@ -62,6 +62,7 @@ export function createSupabaseTransactionRoutes(): Router {
     // Create new transaction
     router.post('/', async (req: Request, res: Response) => {
         try {
+            console.log('Creating transaction with body:', JSON.stringify(req.body, null, 2));
             const transaction = await supabaseService.createTransaction(req.body);
             const response: ApiResponse<typeof transaction> = {
                 success: true,
@@ -70,6 +71,7 @@ export function createSupabaseTransactionRoutes(): Router {
             };
             res.status(201).json(response);
         } catch (error) {
+            console.error('Error creating transaction:', error);
             const response: ApiResponse<null> = {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error',

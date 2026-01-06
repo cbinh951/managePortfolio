@@ -472,9 +472,18 @@ export class SupabaseService {
 
         const transaction_id = `T${Date.now()}${Math.floor(Math.random() * 10000)}`;
 
+        // Clean up empty strings to null for foreign key fields
+        const cleanedTransaction = {
+            ...transaction,
+            transaction_id,
+            portfolio_id: transaction.portfolio_id || null,
+            cash_account_id: transaction.cash_account_id || null,
+            description: transaction.description || null,
+        };
+
         const { data, error } = await supabase
             .from(TABLES.TRANSACTIONS)
-            .insert({ ...transaction, transaction_id })
+            .insert(cleanedTransaction)
             .select()
             .single();
 
