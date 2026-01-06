@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/services/api';
+import { AssetTypeMetrics } from '@/types/models';
 import PortfolioTable from '@/components/portfolio/PortfolioTable';
 import KPICard from '@/components/common/KPICard';
 import CreatePortfolioModal from '@/components/portfolio/CreatePortfolioModal';
+import AssetTypeFilter from '@/components/portfolio/AssetTypeFilter';
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { formatXIRR } from '@/utils/performanceUtils';
@@ -52,9 +54,13 @@ export default function PortfoliosPage() {
     });
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedAssetType, setSelectedAssetType] = useState('ALL');
+    const [filteredMetrics, setFilteredMetrics] = useState<AssetTypeMetrics | null>(null);
+    const [metricsLoading, setMetricsLoading] = useState(false);
 
     useEffect(() => {
         loadPortfoliosData();
+        loadFilteredMetrics(selectedAssetType);
     }, []);
 
     const loadPortfoliosData = async () => {
@@ -82,7 +88,7 @@ export default function PortfoliosPage() {
                     id: portfolio.portfolio_id,
                     name: portfolio.name,
                     idBadge: `#${portfolio.portfolio_id}`,
-                    assetType: asset?.asset_type || 'UNKNOWN',
+                    assetType: asset?.asset_name || 'UNKNOWN',
                     platform: platform?.platform_name || 'Unknown',
                     strategy: strategy?.strategy_name || 'Unknown',
                     balance: performance?.current_nav || 0,
@@ -126,6 +132,26 @@ export default function PortfoliosPage() {
         }
     };
 
+    const loadFilteredMetrics = async (assetType: string) => {
+        try {
+            console.log('🎯 Loading metrics for:', assetType);
+            setMetricsLoading(true);
+            const metrics = await apiClient.getAssetTypeMetrics(assetType);
+            console.log('✅ Metrics loaded:', metrics);
+            setFilteredMetrics(metrics);
+        } catch (error) {
+            console.error('Failed to load filtered metrics:', error);
+        } finally {
+            setMetricsLoading(false);
+        }
+    };
+
+    const handleAssetTypeChange = (assetType: string) => {
+        console.log('🔄 Filter changed to:', assetType);
+        setSelectedAssetType(assetType);
+        loadFilteredMetrics(assetType);
+    };
+
     const handleCreateSuccess = () => {
         loadPortfoliosData();
     };
@@ -152,32 +178,79 @@ export default function PortfoliosPage() {
                     </button>
                 </div>
 
+                {/* Asset Type Filter */}
+                <div className="mb-6">
+                    <AssetTypeFilter
+                        selectedAssetType={selectedAssetType}
+                        onFilterChange={handleAssetTypeChange}
+                    />
+                </div>
+
                 {/* Summary Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <KPICard
-                        title="Total Net Worth"
-                        value={formatCurrency(data.totalNetWorth, 'VND', settings.displayCurrency, settings.exchangeRate)}
-                        change={5.2}
-                        icon={<TrendUpIcon />}
-                        iconBg="bg-emerald-500/10"
-                    />
-                    <KPICard
-                        title="Total Profit/Loss"
-                        value={formatCurrency(data.totalProfit, 'VND', settings.displayCurrency, settings.exchangeRate)}
-                        change={6.4}
-                        icon={<TrendUpIcon />}
-                        iconBg="bg-emerald-500/10"
-                        valueColor={data.totalProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}
-                    />
-                    <KPICard
-                        title="Average XIRR"
-                        value={`${formatXIRR(data.averageXIRR)}%`}
-                        change={1.2}
-                        changeLabel="Annualized"
-                        icon={<PercentIcon />}
-                        iconBg="bg-amber-500/10"
-                        valueColor="text-amber-400"
-                    />
+                    {metricsLoading ? (
+                        // Loading skeleton
+                        <>
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 animate-pulse">
+                                    <div className="h-4 bg-slate-700 rounded w-1/2 mb-4"></div>
+                                    <div className="h-8 bg-slate-700 rounded w-3/4"></div>
+                                </div>
+                            ))}
+                        </>
+                    ) : filteredMetrics ? (
+                        // Filtered metrics
+                        <>
+                            <KPICard
+                                title="Total Net Worth"
+                                value={formatCurrency(filteredMetrics.total_net_worth, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                icon={<TrendUpIcon />}
+                                iconBg="bg-emerald-500/10"
+                            />
+                            <KPICard
+                                title="Total Profit/Loss"
+                                value={formatCurrency(filteredMetrics.total_profit_loss, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                change={filteredMetrics.profit_loss_percentage}
+                                changeLabel="Return"
+                                icon={<TrendUpIcon />}
+                                iconBg="bg-emerald-500/10"
+                                valueColor={filteredMetrics.total_profit_loss >= 0 ? 'text-emerald-400' : 'text-red-400'}
+                            />
+                            <KPICard
+                                title="Average XIRR"
+                                value={`${formatXIRR(filteredMetrics.average_xirr)}%`}
+                                changeLabel="Annualized"
+                                icon={<PercentIcon />}
+                                iconBg="bg-amber-500/10"
+                                valueColor="text-amber-400"
+                            />
+                        </>
+                    ) : (
+                        // Fallback to original data (shouldn't happen)
+                        <>
+                            <KPICard
+                                title="Total Net Worth"
+                                value={formatCurrency(data.totalNetWorth, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                icon={<TrendUpIcon />}
+                                iconBg="bg-emerald-500/10"
+                            />
+                            <KPICard
+                                title="Total Profit/Loss"
+                                value={formatCurrency(data.totalProfit, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                icon={<TrendUpIcon />}
+                                iconBg="bg-emerald-500/10"
+                                valueColor={data.totalProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}
+                            />
+                            <KPICard
+                                title="Average XIRR"
+                                value={`${formatXIRR(data.averageXIRR)}%`}
+                                changeLabel="Annualized"
+                                icon={<PercentIcon />}
+                                iconBg="bg-amber-500/10"
+                                valueColor="text-amber-400"
+                            />
+                        </>
+                    )}
                 </div>
 
                 {/* Portfolio Table */}
@@ -186,7 +259,13 @@ export default function PortfoliosPage() {
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
                     </div>
                 ) : (
-                    <PortfolioTable data={data.rows} />
+                    <PortfolioTable
+                        data={
+                            selectedAssetType === 'ALL'
+                                ? data.rows
+                                : data.rows.filter(row => row.assetType === selectedAssetType)
+                        }
+                    />
                 )}
             </div>
 

@@ -19,14 +19,12 @@ export default function EditAssetModal({
     onUpdate,
 }: EditAssetModalProps) {
     const [assetName, setAssetName] = useState('');
-    const [assetType, setAssetType] = useState('STOCK');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     useEffect(() => {
         if (asset) {
             setAssetName(asset.asset_name);
-            setAssetType(asset.asset_type);
         }
     }, [asset]);
 
@@ -45,7 +43,7 @@ export default function EditAssetModal({
             setLoading(true);
             const updatedAsset = await onUpdate(asset.asset_id, {
                 asset_name: assetName,
-                asset_type: assetType,
+                asset_type: assetName,
             });
             onSuccess(updatedAsset);
             onClose();
@@ -120,23 +118,7 @@ export default function EditAssetModal({
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
-                            Asset Type *
-                        </label>
-                        <select
-                            value={assetType}
-                            onChange={(e) => setAssetType(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            disabled={loading}
-                        >
-                            <option value="STOCK">STOCK</option>
-                            <option value="FOREX">FOREX</option>
-                            <option value="GOLD">GOLD</option>
-                            <option value="CASH">CASH</option>
-                            <option value="OTHER">OTHER</option>
-                        </select>
-                    </div>
+
 
                     <div className="flex gap-3 pt-4">
                         <button

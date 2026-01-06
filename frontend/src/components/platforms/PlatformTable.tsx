@@ -12,7 +12,18 @@ interface PlatformTableProps {
 }
 
 // Platform type icons and colors
-const getPlatformIcon = (type: string) => {
+const getPlatformIcon = (type: string | undefined) => {
+    if (!type) {
+        return {
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+            ),
+            bg: 'bg-slate-500/10',
+            text: 'text-slate-400',
+        };
+    }
     switch (type.toUpperCase()) {
         case 'BROKER':
             return {
@@ -77,17 +88,16 @@ export default function PlatformTable({ platforms, onEdit, onDelete, selectedTyp
     // Helper to get asset name by ID
     const getAssetName = (assetId: string) => {
         const asset = assets.find(a => a.asset_id === assetId);
-        return asset ? `${asset.asset_name} (${asset.asset_type})` : assetId;
+        return asset ? asset.asset_name : assetId;
     };
 
     // Filter platforms based on search and type
     const filteredPlatforms = platforms.filter(platform => {
         const matchesSearch = searchQuery.toLowerCase() === '' ||
             platform.platform_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            platform.platform_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            platform.platform_type.toLowerCase().includes(searchQuery.toLowerCase());
+            platform.platform_id.toLowerCase().includes(searchQuery.toLowerCase());
 
-        const matchesType = selectedType === 'ALL' || platform.platform_type === selectedType;
+        const matchesType = selectedType === 'ALL' || platform.platform_name === selectedType;
 
         return matchesSearch && matchesType;
     });
@@ -119,7 +129,6 @@ export default function PlatformTable({ platforms, onEdit, onDelete, selectedTyp
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Institution</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Platform ID</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Platform Type</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Asset Type</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
@@ -127,7 +136,7 @@ export default function PlatformTable({ platforms, onEdit, onDelete, selectedTyp
                     </thead>
                     <tbody className="divide-y divide-slate-700/30">
                         {filteredPlatforms.map((platform) => {
-                            const iconConfig = getPlatformIcon(platform.platform_type);
+                            const iconConfig = getPlatformIcon(platform.platform_name);
                             return (
                                 <tr key={platform.platform_id} className="hover:bg-slate-700/20 transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -142,11 +151,6 @@ export default function PlatformTable({ platforms, onEdit, onDelete, selectedTyp
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className="text-sm text-slate-400">{platform.platform_id}</span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${iconConfig.bg} ${iconConfig.text} border-current`}>
-                                            {platform.platform_type}
-                                        </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className="text-sm text-slate-300">{getAssetName(platform.asset_id)}</span>

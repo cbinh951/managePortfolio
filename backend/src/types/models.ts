@@ -25,13 +25,13 @@ export enum TransactionType {
 export interface Asset {
     asset_id: string;
     asset_name: string;
-    asset_type: AssetType;
+    asset_type?: AssetType; // Optional since removed from DB
 }
 
 export interface Platform {
     platform_id: string;
     platform_name: string;
-    platform_type: PlatformType;
+    platform_type?: PlatformType; // Optional since removed from DB
     asset_id: string;
 }
 
@@ -97,4 +97,12 @@ export interface DashboardData {
     investment_percentage: number;
     portfolios: PortfolioPerformance[];
     cash_accounts: CashBalance[];
+}
+
+export interface AssetTypeMetrics {
+    asset_type: string;
+    total_net_worth: number;
+    total_profit_loss: number;
+    profit_loss_percentage: number;
+    average_xirr: number;
 }

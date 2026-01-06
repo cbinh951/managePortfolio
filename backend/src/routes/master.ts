@@ -38,16 +38,6 @@ export function createMasterRoutes(csvService: CsvService): Router {
                 return res.status(400).json(response);
             }
 
-            // Validate asset_type
-            const validTypes = ['STOCK', 'FOREX', 'GOLD', 'CASH', 'OTHER'];
-            if (!validTypes.includes(asset_type.toUpperCase())) {
-                const response: ApiResponse<null> = {
-                    success: false,
-                    error: `asset_type must be one of: ${validTypes.join(', ')}`,
-                };
-                return res.status(400).json(response);
-            }
-
             const assets = await csvService.readCsv<Asset>('master/assets.csv');
 
             // Generate new asset ID
@@ -58,7 +48,7 @@ export function createMasterRoutes(csvService: CsvService): Router {
             const newAsset: Asset = {
                 asset_id: newAssetId,
                 asset_name: asset_name.trim(),
-                asset_type: asset_type.toUpperCase(),
+                asset_type: asset_type.trim(),
             };
 
             assets.push(newAsset);
@@ -100,21 +90,11 @@ export function createMasterRoutes(csvService: CsvService): Router {
                 return res.status(404).json(response);
             }
 
-            // Validate asset_type if provided
-            if (asset_type) {
-                const validTypes = ['STOCK', 'FOREX', 'GOLD', 'CASH', 'OTHER'];
-                if (!validTypes.includes(asset_type.toUpperCase())) {
-                    const response: ApiResponse<null> = {
-                        success: false,
-                        error: `asset_type must be one of: ${validTypes.join(', ')}`,
-                    };
-                    return res.status(400).json(response);
-                }
-            }
+
 
             // Update fields
             if (asset_name) assets[assetIndex].asset_name = asset_name.trim();
-            if (asset_type) assets[assetIndex].asset_type = asset_type.toUpperCase();
+            if (asset_type) assets[assetIndex].asset_type = asset_type.trim();
 
             await csvService.writeCsv('master/assets.csv', assets, [
                 { id: 'asset_id', title: 'asset_id' },
@@ -219,16 +199,6 @@ export function createMasterRoutes(csvService: CsvService): Router {
                 return res.status(400).json(response);
             }
 
-            // Validate platform_type
-            const validTypes = ['BROKER', 'BANK', 'WALLET', 'OTHER'];
-            if (!validTypes.includes(platform_type.toUpperCase())) {
-                const response: ApiResponse<null> = {
-                    success: false,
-                    error: `platform_type must be one of: ${validTypes.join(', ')}`,
-                };
-                return res.status(400).json(response);
-            }
-
             // Validate asset_id exists
             const assets = await csvService.readCsv<Asset>('master/assets.csv');
             const assetExists = assets.some(a => a.asset_id === asset_id);
@@ -250,7 +220,7 @@ export function createMasterRoutes(csvService: CsvService): Router {
             const newPlatform: Platform = {
                 platform_id: newPlatformId,
                 platform_name: platform_name.trim(),
-                platform_type: platform_type.toUpperCase(),
+                platform_type: platform_type.trim(),
                 asset_id: asset_id,
             };
 
@@ -294,17 +264,7 @@ export function createMasterRoutes(csvService: CsvService): Router {
                 return res.status(404).json(response);
             }
 
-            // Validate platform_type if provided
-            if (platform_type) {
-                const validTypes = ['BROKER', 'BANK', 'WALLET', 'OTHER'];
-                if (!validTypes.includes(platform_type.toUpperCase())) {
-                    const response: ApiResponse<null> = {
-                        success: false,
-                        error: `platform_type must be one of: ${validTypes.join(', ')}`,
-                    };
-                    return res.status(400).json(response);
-                }
-            }
+
 
             // Validate asset_id if provided
             if (asset_id) {
@@ -321,7 +281,7 @@ export function createMasterRoutes(csvService: CsvService): Router {
 
             // Update fields
             if (platform_name) platforms[platformIndex].platform_name = platform_name.trim();
-            if (platform_type) platforms[platformIndex].platform_type = platform_type.toUpperCase();
+            if (platform_type) platforms[platformIndex].platform_type = platform_type.trim();
             if (asset_id) platforms[platformIndex].asset_id = asset_id;
 
             await csvService.writeCsv('master/platforms.csv', platforms, [

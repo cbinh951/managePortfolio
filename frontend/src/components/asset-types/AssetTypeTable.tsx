@@ -60,8 +60,7 @@ export default function AssetTypeTable({ assets, onEdit, onDelete, onViewDetails
         const query = searchQuery.toLowerCase();
         return (
             asset.asset_name.toLowerCase().includes(query) ||
-            asset.asset_id.toLowerCase().includes(query) ||
-            asset.asset_type.toLowerCase().includes(query)
+            asset.asset_id.toLowerCase().includes(query)
         );
     });
     return (
@@ -80,7 +79,7 @@ export default function AssetTypeTable({ assets, onEdit, onDelete, onViewDetails
                         </svg>
                         <input
                             type="text"
-                            placeholder="Search asset types, tags, or categories..."
+                            placeholder="Search asset types or IDs..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700/50 rounded-lg text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:border-slate-600 focus:ring-1 focus:ring-slate-600"
@@ -111,9 +110,6 @@ export default function AssetTypeTable({ assets, onEdit, onDelete, onViewDetails
                             <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                                 Asset Name
                             </th>
-                            <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                                Category
-                            </th>
                             <th className="px-6 py-4 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
                                 Actions
                             </th>
@@ -138,11 +134,6 @@ export default function AssetTypeTable({ assets, onEdit, onDelete, onViewDetails
                                                 </div>
                                             </div>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className="px-2.5 py-1 rounded-md bg-slate-700/50 text-xs font-medium text-slate-300">
-                                            {asset.asset_type}
-                                        </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
                                         <div className="flex items-center justify-end gap-2">

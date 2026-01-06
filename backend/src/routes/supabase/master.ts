@@ -31,28 +31,18 @@ export function createSupabaseMasterRoutes(): Router {
     // Create new asset
     router.post('/assets', async (req: Request, res: Response) => {
         try {
-            const { asset_name, asset_type } = req.body;
+            const { asset_name } = req.body;
 
-            if (!asset_name || !asset_type) {
+            if (!asset_name) {
                 const response: ApiResponse<null> = {
                     success: false,
-                    error: 'asset_name and asset_type are required',
-                };
-                return res.status(400).json(response);
-            }
-
-            const validTypes = ['STOCK', 'FOREX', 'GOLD', 'CASH'];
-            if (!validTypes.includes(asset_type.toUpperCase())) {
-                const response: ApiResponse<null> = {
-                    success: false,
-                    error: `asset_type must be one of: ${validTypes.join(', ')}`,
+                    error: 'asset_name is required',
                 };
                 return res.status(400).json(response);
             }
 
             const asset = await supabaseService.createAsset({
                 asset_name: asset_name.trim(),
-                asset_type: asset_type.toUpperCase(),
             });
 
             const response: ApiResponse<Asset> = {
@@ -73,22 +63,12 @@ export function createSupabaseMasterRoutes(): Router {
     router.put('/assets/:id', async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const { asset_name, asset_type } = req.body;
+            const { asset_name } = req.body;
 
-            if (asset_type) {
-                const validTypes = ['STOCK', 'FOREX', 'GOLD', 'CASH'];
-                if (!validTypes.includes(asset_type.toUpperCase())) {
-                    const response: ApiResponse<null> = {
-                        success: false,
-                        error: `asset_type must be one of: ${validTypes.join(', ')}`,
-                    };
-                    return res.status(400).json(response);
-                }
-            }
+
 
             const updates: Partial<Asset> = {};
             if (asset_name) updates.asset_name = asset_name.trim();
-            if (asset_type) updates.asset_type = asset_type.toUpperCase();
 
             const asset = await supabaseService.updateAsset(id, updates);
             if (!asset) {
@@ -163,28 +143,18 @@ export function createSupabaseMasterRoutes(): Router {
     // Create new platform
     router.post('/platforms', async (req: Request, res: Response) => {
         try {
-            const { platform_name, platform_type, asset_id } = req.body;
+            const { platform_name, asset_id } = req.body;
 
-            if (!platform_name || !platform_type) {
+            if (!platform_name) {
                 const response: ApiResponse<null> = {
                     success: false,
-                    error: 'platform_name and platform_type are required',
-                };
-                return res.status(400).json(response);
-            }
-
-            const validTypes = ['BROKER', 'BANK', 'WALLET'];
-            if (!validTypes.includes(platform_type.toUpperCase())) {
-                const response: ApiResponse<null> = {
-                    success: false,
-                    error: `platform_type must be one of: ${validTypes.join(', ')}`,
+                    error: 'platform_name is required',
                 };
                 return res.status(400).json(response);
             }
 
             const platform = await supabaseService.createPlatform({
                 platform_name: platform_name.trim(),
-                platform_type: platform_type.toUpperCase(),
                 asset_id: asset_id || null,
             });
 
@@ -206,22 +176,12 @@ export function createSupabaseMasterRoutes(): Router {
     router.put('/platforms/:id', async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const { platform_name, platform_type, asset_id } = req.body;
+            const { platform_name, asset_id } = req.body;
 
-            if (platform_type) {
-                const validTypes = ['BROKER', 'BANK', 'WALLET'];
-                if (!validTypes.includes(platform_type.toUpperCase())) {
-                    const response: ApiResponse<null> = {
-                        success: false,
-                        error: `platform_type must be one of: ${validTypes.join(', ')}`,
-                    };
-                    return res.status(400).json(response);
-                }
-            }
+
 
             const updates: Partial<Platform> = {};
             if (platform_name) updates.platform_name = platform_name.trim();
-            if (platform_type) updates.platform_type = platform_type.toUpperCase();
             if (asset_id !== undefined) updates.asset_id = asset_id;
 
             const platform = await supabaseService.updatePlatform(id, updates);

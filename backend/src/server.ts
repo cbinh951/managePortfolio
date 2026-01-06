@@ -16,6 +16,7 @@ import { createTransactionRoutes } from './routes/transactions';
 import { createSnapshotRoutes } from './routes/snapshots';
 import { createDashboardRoutes } from './routes/dashboard';
 import { createMasterRoutes } from './routes/master';
+import { createAssetAnalyticsRoutes } from './routes/asset-analytics';
 
 // Supabase Routes
 import {
@@ -43,7 +44,7 @@ const corsOptions = {
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
         // Allow requests with no origin (like mobile apps or curl)
         if (!origin) return callback(null, true);
-        
+
         if (allowedOrigins.includes(origin) || process.env.CORS_ORIGIN === '*') {
             callback(null, true);
         } else {
@@ -85,22 +86,23 @@ if (USE_SUPABASE) {
     app.use('/api/snapshots', createSnapshotRoutes(csvService));
     app.use('/api/dashboard', createDashboardRoutes(csvService));
     app.use('/api/master', createMasterRoutes(csvService));
+    app.use('/api/asset-analytics', createAssetAnalyticsRoutes(csvService));
 }
 
 // Root route
 app.get('/', (req, res) => {
-    res.json({ 
-        status: 'ok', 
+    res.json({
+        status: 'ok',
         message: 'Portfolio Management API',
         storage: USE_SUPABASE ? 'supabase' : 'csv',
-        endpoints: ['/api/portfolios', '/api/transactions', '/api/snapshots', '/api/dashboard', '/health']
+        endpoints: ['/api/portfolios', '/api/transactions', '/api/snapshots', '/api/dashboard', '/api/asset-analytics', '/health']
     });
 });
 
 // Health check
 app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
+    res.json({
+        status: 'ok',
         message: 'Portfolio Management API is running',
         storage: USE_SUPABASE ? 'supabase' : 'csv',
     });

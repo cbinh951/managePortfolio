@@ -71,7 +71,7 @@ export default function AssetDetailModal({ isOpen, asset, platforms, onClose }: 
                     <div>
                         <h2 className="text-2xl font-bold text-white">{asset.asset_name}</h2>
                         <p className="text-sm text-slate-400 mt-1">
-                            Type: <span className="text-slate-300">{asset.asset_type}</span> • ID: <span className="text-slate-300">{asset.asset_id}</span>
+                            ID: <span className="text-slate-300">{asset.asset_id}</span>
                         </p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">

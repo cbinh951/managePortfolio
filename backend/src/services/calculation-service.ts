@@ -192,3 +192,19 @@ export function prepareXIRRCashFlows(
 
     return cashFlows;
 }
+
+/**
+ * Calculate average XIRR from an array of XIRR values
+ * Filters out zero values and returns the arithmetic mean
+ */
+export function calculateAverageXIRR(xirrs: number[]): number {
+    // Filter out zero values (represents portfolios with no valid XIRR)
+    const validXirrs = xirrs.filter(x => x !== 0);
+
+    if (validXirrs.length === 0) {
+        return 0;
+    }
+
+    const sum = validXirrs.reduce((acc, xirr) => acc + xirr, 0);
+    return sum / validXirrs.length;
+}

@@ -101,9 +101,6 @@ export default function AssetTypesPage() {
         setIsDetailModalOpen(true);
     };
 
-    // Get unique active categories (asset types that exist)
-    const activeCategories = new Set(assets.map(a => a.asset_type)).size;
-
     return (
         <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8">
             <div className="max-w-7xl mx-auto">

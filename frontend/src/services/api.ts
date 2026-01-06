@@ -10,6 +10,7 @@ import {
     Asset,
     Platform,
     Strategy,
+    AssetTypeMetrics,
 } from '@/types/models';
 import {
     ApiResponse,
@@ -286,7 +287,7 @@ class ApiClient {
         }
     }
 
-    async createPlatform(data: { platform_name: string; platform_type: string; asset_id: string }): Promise<Platform> {
+    async createPlatform(data: { platform_name: string; platform_type?: string; asset_id: string }): Promise<Platform> {
         const response = await this.client.post<ApiResponse<Platform>>('/master/platforms', data);
         if (!response.data.success || !response.data.data) {
             throw new Error(response.data.error || 'Failed to create platform');
@@ -307,6 +308,18 @@ class ApiClient {
         if (!response.data.success) {
             throw new Error(response.data.error || 'Failed to delete platform');
         }
+    }
+
+    // Asset Analytics
+    async getAssetTypeMetrics(assetType?: string): Promise<AssetTypeMetrics> {
+        const params = assetType ? { asset_type: assetType } : { asset_type: 'ALL' };
+        console.log('🔍 Fetching metrics for asset type:', params.asset_type);
+        const response = await this.client.get<ApiResponse<AssetTypeMetrics>>('/asset-analytics', { params });
+        console.log('📊 Received metrics:', response.data.data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch asset type metrics');
+        }
+        return response.data.data;
     }
 }
 
