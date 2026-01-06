@@ -179,7 +179,7 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold text-white mb-2">
-                Dashboard test
+                Dashboard test 1
               </h1>
               <p className="text-slate-400">
                 Overview of your total wealth and performance
