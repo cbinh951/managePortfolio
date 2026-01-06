@@ -9,7 +9,7 @@ services:
     plan: free
     branch: master
     rootDir: backend
-    buildCommand: npm ci && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: node dist/server.js
     healthCheckPath: /health
     autoDeploy: true
@@ -19,11 +19,14 @@ services:
         value: production
       - key: PORT
         value: 10000
-      - key: DATA_PATH
-        value: ./data
       # CORS - allow frontend origin
       - key: CORS_ORIGIN
         value: https://manage-portfolio-fe.onrender.com
+      # Supabase Configuration (set these in Render Dashboard with your actual values)
+      - key: SUPABASE_URL
+        sync: false  # Set manually in dashboard
+      - key: SUPABASE_SERVICE_KEY
+        sync: false  # Set manually in dashboard (keep secret!)
 
   # ============================================
   # Frontend Web Service  
@@ -50,6 +53,6 @@ services:
         value: https://manage-portfolio-api.onrender.com
 
 # NOTE: 
-# - Free tier: Data stored in CSV files will reset on each deploy
-# - For data persistence, consider upgrading to paid plan with persistent disk
-# - Or migrate to Supabase/PostgreSQL for database storage
+# - Data is now stored in Supabase (PostgreSQL)
+# - Set SUPABASE_URL and SUPABASE_SERVICE_KEY in Render Dashboard
+# - Get credentials from: Supabase Project → Settings → API

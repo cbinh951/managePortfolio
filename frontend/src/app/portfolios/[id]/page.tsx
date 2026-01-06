@@ -62,8 +62,25 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
             setLoading(true);
             setError(null);
 
-            // Try to fetch as portfolio first
-            try {
+            // Check if ID starts with "CA" to determine if it's a cash account
+            const isCashAccount = id.startsWith('CA');
+
+            if (isCashAccount) {
+                // Fetch as cash account directly
+                const cashAccount = await apiClient.getCashAccount(id);
+                const cashBalance = await apiClient.getCashAccountBalance(id);
+                const transactions = await apiClient.getCashAccountTransactions(id);
+
+                setData({
+                    type: 'cash',
+                    name: cashAccount.name,
+                    cashAccount,
+                    cashBalance,
+                    transactions,
+                    snapshots: [],
+                });
+            } else {
+                // Fetch as portfolio
                 const portfolio = await apiClient.getPortfolio(id);
                 const performance = await apiClient.getPortfolioPerformance(id);
                 const transactions = await apiClient.getPortfolioTransactions(id);
@@ -76,20 +93,6 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                     performance,
                     transactions,
                     snapshots,
-                });
-            } catch (portfolioError) {
-                // If portfolio fetch fails, try as cash account
-                const cashAccount = await apiClient.getCashAccount(id);
-                const cashBalance = await apiClient.getCashAccountBalance(id);
-                const transactions = await apiClient.getCashAccountTransactions(id);
-
-                setData({
-                    type: 'cash',
-                    name: cashAccount.name,
-                    cashAccount,
-                    cashBalance,
-                    transactions,
-                    snapshots: [],
                 });
             }
         } catch (err) {
