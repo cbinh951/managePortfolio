@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Use standalone for Docker, default for Render Node runtime
-  // output: "standalone", // Uncomment for Docker deployment
+  // Enable standalone output for Docker deployment
+  output: "standalone",
   
   // Allow images from external domains if needed
   images: {

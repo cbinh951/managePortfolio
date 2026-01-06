@@ -7,7 +7,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    branch: main
+    branch: master
     rootDir: backend
     buildCommand: npm ci && npm run build
     startCommand: node dist/server.js
@@ -33,7 +33,7 @@ services:
     runtime: node
     region: oregon
     plan: free
-    branch: main
+    branch: master
     rootDir: frontend
     buildCommand: npm ci && npm run build
     startCommand: npm start
