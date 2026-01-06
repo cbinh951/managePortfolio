@@ -186,7 +186,7 @@ export default function Home() {
               </p>
             </div>
             <div className="flex gap-2">
-              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2">
+              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium flex items-center gap-2 cursor-pointer">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
@@ -297,7 +297,7 @@ export default function Home() {
                   >
                     Name
                     {sortConfig.key === 'name' && (
-                      <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                      <span className="cursor-pointer">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-4">
@@ -310,7 +310,7 @@ export default function Home() {
                     >
                       NAV
                       {sortConfig.key === 'nav' && (
-                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                        <span className="cursor-pointer">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                       )}
                     </div>
                     <div
@@ -322,7 +322,7 @@ export default function Home() {
                     >
                       Return
                       {sortConfig.key === 'return' && (
-                        <span>{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
+                        <span className="cursor-pointer">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
                       )}
                     </div>
                     <div className="w-8"></div>{/* Spacer for delete button */}
@@ -354,7 +354,7 @@ export default function Home() {
                     }
 
                     return sortedPortfolios.map((portfolio: any) => (
-                      <div key={portfolio.portfolio_id} className="relative group bg-slate-800 rounded-lg border border-slate-700/50 hover:border-blue-500/50 hover:bg-slate-700/50 transition-all flex items-center pr-2">
+                      <div key={portfolio.portfolio_id} className="relative group bg-slate-800 rounded-lg border border-slate-700/50 hover:border-blue-500/50 hover:bg-slate-700/50 transition-all flex items-center pr-2 cursor-pointer">
                         <Link href={`/portfolios/${portfolio.portfolio_id}`} className="flex-1">
                           <div className="flex items-center justify-between p-4 cursor-pointer">
                             <div>
@@ -389,7 +389,7 @@ export default function Home() {
                                 handleDeletePortfolio(portfolio.portfolio_id);
                               }
                             }}
-                            className="p-2 text-red-500 hover:text-red-400 bg-slate-900/50 hover:bg-slate-900 rounded-lg transition-colors"
+                            className="p-2 text-red-500 hover:text-red-400 bg-slate-900/50 hover:bg-slate-900 rounded-lg transition-colors cursor-pointer"
                             title="Delete Portfolio"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

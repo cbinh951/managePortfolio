@@ -364,7 +364,7 @@ export default function TransactionTable({ transactions, portfolios, loading = f
                                                             // For paired transfers, edit the first transaction (outgoing)
                                                             onEdit(item.transactions[0]);
                                                         }}
-                                                        className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all"
+                                                        className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all cursor-pointer"
                                                         title={item.isPaired ? "Edit transfer (both transactions)" : "Edit transaction"}
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -379,7 +379,7 @@ export default function TransactionTable({ transactions, portfolios, loading = f
                                                             // Note: In a real implementation, you'd want to delete both
                                                             onDelete(item.transactions[0]);
                                                         }}
-                                                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                                                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all cursor-pointer"
                                                         title={item.isPaired ? "Delete transfer (both transactions)" : "Delete transaction"}
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -408,7 +408,7 @@ export default function TransactionTable({ transactions, portfolios, loading = f
                         <button
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
-                            className="px-3 py-1.5 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                            className="px-3 py-1.5 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400 cursor-pointer"
                         >
                             Previous
                         </button>
@@ -430,7 +430,7 @@ export default function TransactionTable({ transactions, portfolios, loading = f
                                     <button
                                         key={pageNum}
                                         onClick={() => setCurrentPage(pageNum)}
-                                        className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${currentPage === pageNum
+                                        className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors cursor-pointer ${currentPage === pageNum
                                             ? 'bg-blue-600 text-white'
                                             : 'text-slate-400 hover:text-white hover:bg-slate-700'
                                             }`}
@@ -444,7 +444,7 @@ export default function TransactionTable({ transactions, portfolios, loading = f
                         <button
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
-                            className="px-3 py-1.5 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                            className="px-3 py-1.5 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400 cursor-pointer"
                         >
                             Next
                         </button>
