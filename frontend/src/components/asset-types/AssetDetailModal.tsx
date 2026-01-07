@@ -105,7 +105,7 @@ export default function AssetDetailModal({ isOpen, asset, platforms, onClose }: 
                     ) : (
                         <div className="space-y-3">
                             {associatedPlatforms.map((platform) => {
-                                const iconConfig = getPlatformIcon(platform.platform_type);
+                                const iconConfig = getPlatformIcon(platform.platform_name || 'UNKNOWN');
                                 return (
                                     <div
                                         key={platform.platform_id}
@@ -122,7 +122,7 @@ export default function AssetDetailModal({ isOpen, asset, platforms, onClose }: 
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium border ${iconConfig.bg} ${iconConfig.text} border-current`}>
-                                                {platform.platform_type}
+                                                {platform.platform_name}
                                             </span>
                                             <span className="inline-flex items-center gap-1.5 text-sm text-green-400">
                                                 <span className="w-2 h-2 bg-green-400 rounded-full"></span>
