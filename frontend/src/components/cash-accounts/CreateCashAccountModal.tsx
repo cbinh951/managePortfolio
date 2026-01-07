@@ -32,8 +32,11 @@ export default function CreateCashAccountModal({ isOpen, onClose, onSuccess }: C
         try {
             setLoadingData(true);
             const data = await apiClient.getPlatforms();
-            // Filter to only show BANK and WALLET platforms
-            const cashPlatforms = data.filter(p => p.platform_type === 'BANK' || p.platform_type === 'WALLET');
+            // Filter to only show BANK and WALLET platforms based on platform name
+            const cashPlatforms = data.filter(p => {
+                const nameLower = p.platform_name.toLowerCase();
+                return nameLower.includes('bank') || nameLower.includes('wallet');
+            });
             setPlatforms(cashPlatforms);
         } catch (err) {
             setError('Failed to load platforms');
@@ -170,7 +173,7 @@ export default function CreateCashAccountModal({ isOpen, onClose, onSuccess }: C
                                         <option value="">Select platform</option>
                                         {platforms.map((platform) => (
                                             <option key={platform.platform_id} value={platform.platform_id}>
-                                                {platform.platform_name} ({platform.platform_type})
+                                                {platform.platform_name}
                                             </option>
                                         ))}
                                     </select>

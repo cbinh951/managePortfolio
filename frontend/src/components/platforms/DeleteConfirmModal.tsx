@@ -88,15 +88,9 @@ export default function DeleteConfirmModal({
                             Are you sure you want to delete this platform? This action cannot be undone.
                         </p>
                         <div className="bg-slate-900/50 border border-slate-700 rounded-lg p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-slate-400">Platform Name</p>
-                                    <p className="text-white font-medium">{platform.platform_name}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-sm text-slate-400">Platform Type</p>
-                                    <p className="text-white font-medium">{platform.platform_type}</p>
-                                </div>
+                            <div>
+                                <p className="text-sm text-slate-400">Platform Name</p>
+                                <p className="text-white font-medium">{platform.platform_name}</p>
                             </div>
                         </div>
                     </div>

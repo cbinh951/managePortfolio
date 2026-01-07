@@ -54,10 +54,11 @@ export default function EditPortfolioModal({ isOpen, portfolio, onClose, onSucce
                     currency: cashAccountData.currency,
                 });
 
-                // Filter platforms to only show BANK and WALLET
-                const cashPlatforms = platformsData.filter(
-                    p => p.platform_type === 'BANK' || p.platform_type === 'WALLET'
-                );
+                // Filter platforms to only show BANK and WALLET based on name
+                const cashPlatforms = platformsData.filter(p => {
+                    const nameLower = p.platform_name.toLowerCase();
+                    return nameLower.includes('bank') || nameLower.includes('wallet');
+                });
                 setPlatforms(cashPlatforms);
             } else {
                 // Load portfolio data
