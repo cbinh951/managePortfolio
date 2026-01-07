@@ -9,7 +9,7 @@ interface EditPlatformModalProps {
     platform: Platform | null;
     onClose: () => void;
     onSuccess: (platform: Platform) => void;
-    onUpdate: (id: string, data: { platform_name?: string; platform_type?: string; asset_id?: string }) => Promise<Platform>;
+    onUpdate: (id: string, data: { platform_name?: string; asset_id?: string }) => Promise<Platform>;
 }
 
 export default function EditPlatformModal({
@@ -20,7 +20,7 @@ export default function EditPlatformModal({
     onUpdate,
 }: EditPlatformModalProps) {
     const [platformName, setPlatformName] = useState('');
-    const [platformType, setPlatformType] = useState('BROKER');
+    // const [platformType, setPlatformType] = useState('BROKER'); // Removed
     const [assetId, setAssetId] = useState('');
     const [assets, setAssets] = useState<Asset[]>([]);
     const [loading, setLoading] = useState(false);
@@ -29,7 +29,7 @@ export default function EditPlatformModal({
     useEffect(() => {
         if (platform) {
             setPlatformName(platform.platform_name);
-            setPlatformType(platform.platform_type);
+            // setPlatformType(platform.platform_type);
             setAssetId(platform.asset_id);
         }
     }, [platform]);
@@ -64,7 +64,6 @@ export default function EditPlatformModal({
             setLoading(true);
             const updatedPlatform = await onUpdate(platform.platform_id, {
                 platform_name: platformName,
-                platform_type: platformType,
                 asset_id: assetId,
             });
             onSuccess(updatedPlatform);
@@ -140,22 +139,7 @@ export default function EditPlatformModal({
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">
-                            Platform Type *
-                        </label>
-                        <select
-                            value={platformType}
-                            onChange={(e) => setPlatformType(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-slate-900/50 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            disabled={loading}
-                        >
-                            <option value="BROKER">BROKER</option>
-                            <option value="BANK">BANK</option>
-                            <option value="WALLET">WALLET</option>
-                            <option value="OTHER">OTHER</option>
-                        </select>
-                    </div>
+                    {/* Removed Platform Type Input */}
 
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-2">

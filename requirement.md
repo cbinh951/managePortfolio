@@ -193,6 +193,43 @@ Các loại:
 
 Net Worth = Total Cash + Total Investment NAV
 
+---
+
+### BR-08: Quản lý vàng vật chất (Physical Gold Portfolio)
+
+**Use Case**: Khi tạo Portfolio về vàng vật chất
+
+#### Loại vàng:
+- **Vàng thương hiệu** (Branded Gold): Vàng SJC, PNJ, DOJI, etc.
+- **Vàng tư nhân** (Private/Physical Gold): Vàng miếng, vàng nhẫn tư nhân
+
+#### Transaction (Mua/Bán vàng):
+Khi thêm transaction cho vàng vật chất, cần nhập:
+- **Loại vàng**: Dropdown chọn `Vàng thương hiệu` hoặc `Vàng tư nhân`
+- **Số lượng**: Dropdown/Input cho số **"chỉ"** (đơn vị đo vàng Việt Nam, 1 chỉ = 3.75g)
+- **Giá tiền**: Tổng số tiền giao dịch (VND)
+- **Ngày giao dịch**: Date
+
+#### Snapshot (Giá vàng hiện tại):
+Khi nhập snapshot giá vàng tại một thời điểm:
+- **Giá vàng thương hiệu**: Giá của **1 chỉ** vàng thương hiệu tại thời điểm đó (VND/chỉ)
+- **Giá vàng tư nhân**: Giá của **1 chỉ** vàng tư nhân tại thời điểm đó (VND/chỉ)
+- **Ngày snapshot**: Date
+
+*Lưu ý: Snapshot chỉ lưu giá đơn vị (1 chỉ), KHÔNG lưu tổng giá trị*
+
+#### Tính lợi nhuận (P&L):
+```
+Tổng số chỉ đã mua = Sum(số chỉ từ các transaction MUA)
+Tổng số chỉ hiện có = Tổng số chỉ đã mua - Sum(số chỉ từ các transaction BÁN)
+
+NAV hiện tại = Tổng số chỉ hiện có × Giá hiện tại (theo loại vàng)
+
+P&L = NAV hiện tại - Tổng vốn đầu tư
+```
+
+*Lưu ý: Khi tính P&L, cần tách riêng cho từng loại vàng (thương hiệu/tư nhân) vì giá khác nhau*
+
 
 ---
 

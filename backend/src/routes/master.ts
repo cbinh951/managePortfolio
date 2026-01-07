@@ -208,23 +208,13 @@ export function createMasterRoutes(csvService: CsvService): Router {
     // Create new platform
     router.post('/platforms', async (req: Request, res: Response) => {
         try {
-            const { platform_name, platform_type, asset_id } = req.body;
+            const { platform_name, asset_id } = req.body;
 
             // Validation
-            if (!platform_name || !platform_type || !asset_id) {
+            if (!platform_name || !asset_id) {
                 const response: ApiResponse<null> = {
                     success: false,
-                    error: 'platform_name, platform_type, and asset_id are required',
-                };
-                return res.status(400).json(response);
-            }
-
-            // Validate platform_type
-            const validTypes = ['BROKER', 'BANK', 'WALLET', 'OTHER'];
-            if (!validTypes.includes(platform_type.toUpperCase())) {
-                const response: ApiResponse<null> = {
-                    success: false,
-                    error: `platform_type must be one of: ${validTypes.join(', ')}`,
+                    error: 'platform_name and asset_id are required',
                 };
                 return res.status(400).json(response);
             }
@@ -250,7 +240,6 @@ export function createMasterRoutes(csvService: CsvService): Router {
             const newPlatform: Platform = {
                 platform_id: newPlatformId,
                 platform_name: platform_name.trim(),
-                platform_type: platform_type.toUpperCase(),
                 asset_id: asset_id,
             };
 
@@ -259,7 +248,6 @@ export function createMasterRoutes(csvService: CsvService): Router {
             await csvService.writeCsv('master/platforms.csv', platforms, [
                 { id: 'platform_id', title: 'platform_id' },
                 { id: 'platform_name', title: 'platform_name' },
-                { id: 'platform_type', title: 'platform_type' },
                 { id: 'asset_id', title: 'asset_id' },
             ]);
 
@@ -281,7 +269,7 @@ export function createMasterRoutes(csvService: CsvService): Router {
     router.put('/platforms/:id', async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const { platform_name, platform_type, asset_id } = req.body;
+            const { platform_name, asset_id } = req.body;
 
             const platforms = await csvService.readCsv<Platform>('master/platforms.csv');
             const platformIndex = platforms.findIndex(p => p.platform_id === id);
@@ -292,18 +280,6 @@ export function createMasterRoutes(csvService: CsvService): Router {
                     error: 'Platform not found',
                 };
                 return res.status(404).json(response);
-            }
-
-            // Validate platform_type if provided
-            if (platform_type) {
-                const validTypes = ['BROKER', 'BANK', 'WALLET', 'OTHER'];
-                if (!validTypes.includes(platform_type.toUpperCase())) {
-                    const response: ApiResponse<null> = {
-                        success: false,
-                        error: `platform_type must be one of: ${validTypes.join(', ')}`,
-                    };
-                    return res.status(400).json(response);
-                }
             }
 
             // Validate asset_id if provided
@@ -321,13 +297,11 @@ export function createMasterRoutes(csvService: CsvService): Router {
 
             // Update fields
             if (platform_name) platforms[platformIndex].platform_name = platform_name.trim();
-            if (platform_type) platforms[platformIndex].platform_type = platform_type.toUpperCase();
             if (asset_id) platforms[platformIndex].asset_id = asset_id;
 
             await csvService.writeCsv('master/platforms.csv', platforms, [
                 { id: 'platform_id', title: 'platform_id' },
                 { id: 'platform_name', title: 'platform_name' },
-                { id: 'platform_type', title: 'platform_type' },
                 { id: 'asset_id', title: 'asset_id' },
             ]);
 
@@ -380,7 +354,6 @@ export function createMasterRoutes(csvService: CsvService): Router {
             await csvService.writeCsv('master/platforms.csv', platforms, [
                 { id: 'platform_id', title: 'platform_id' },
                 { id: 'platform_name', title: 'platform_name' },
-                { id: 'platform_type', title: 'platform_type' },
                 { id: 'asset_id', title: 'asset_id' },
             ]);
 

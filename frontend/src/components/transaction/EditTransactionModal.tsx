@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/services/api';
-import { Portfolio, CashAccount, Transaction } from '@/types/models';
+import { Portfolio, CashAccount, Transaction, AssetType, GoldType, Asset } from '@/types/models';
 import { useSettings } from '@/contexts/SettingsContext';
 import { getCurrencySymbol } from '@/utils/currencyUtils';
 
@@ -31,16 +31,24 @@ export default function EditTransactionModal({
         description: '',
     });
 
+    // Gold-specific state
+    const [goldFields, setGoldFields] = useState({
+        gold_type: GoldType.BRANDED,
+        quantity_chi: '',
+    });
+
     // Master data
     const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
     const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([]);
+    const [assets, setAssets] = useState<Asset[]>([]);
 
     // UI state
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [loadingData, setLoadingData] = useState(true);
+    const [selectedPortfolioAssetType, setSelectedPortfolioAssetType] = useState<AssetType | null>(null);
 
-    // Load portfolios and cash accounts
+    // Load portfolios, cash accounts and assets
     useEffect(() => {
         if (isOpen) {
             loadData();
@@ -58,18 +66,46 @@ export default function EditTransactionModal({
                 cash_account_id: transaction.cash_account_id || '',
                 description: transaction.description || '',
             });
+
+            // Populate gold fields if present
+            if (transaction.gold_type) {
+                setGoldFields({
+                    gold_type: transaction.gold_type,
+                    quantity_chi: transaction.quantity_chi?.toString() || '',
+                });
+            } else {
+                setGoldFields({
+                    gold_type: GoldType.BRANDED,
+                    quantity_chi: '',
+                });
+            }
         }
     }, [transaction]);
+
+    // Detect asset type when portfolio changes
+    useEffect(() => {
+        if (formData.portfolio_id && assets.length > 0) {
+            const portfolio = portfolios.find(p => p.portfolio_id === formData.portfolio_id);
+            if (portfolio) {
+                const asset = assets.find(a => a.asset_id === portfolio.asset_id);
+                setSelectedPortfolioAssetType(asset?.asset_type || null);
+            }
+        } else {
+            setSelectedPortfolioAssetType(null);
+        }
+    }, [formData.portfolio_id, portfolios, assets]);
 
     const loadData = async () => {
         try {
             setLoadingData(true);
-            const [portfoliosData, cashAccountsData] = await Promise.all([
+            const [portfoliosData, cashAccountsData, assetsData] = await Promise.all([
                 apiClient.getPortfolios(),
                 apiClient.getCashAccounts(),
+                apiClient.getAssets(),
             ]);
             setPortfolios(portfoliosData);
             setCashAccounts(cashAccountsData);
+            setAssets(assetsData);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load data');
         } finally {
@@ -81,6 +117,10 @@ export default function EditTransactionModal({
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
+
+    const handleGoldTypeChange = (type: GoldType) => {
+        setGoldFields(prev => ({ ...prev, gold_type: type }));
+    }
 
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -121,6 +161,11 @@ export default function EditTransactionModal({
         if (!formData.portfolio_id && !formData.cash_account_id) {
             return 'Please select a portfolio or cash account';
         }
+        if (selectedPortfolioAssetType === AssetType.GOLD && formData.portfolio_id) {
+            if (!goldFields.quantity_chi || parseFloat(goldFields.quantity_chi) <= 0) {
+                return 'Please enter a valid quantity (chỉ)';
+            }
+        }
         return null;
     };
 
@@ -139,6 +184,8 @@ export default function EditTransactionModal({
             setLoading(true);
             setError(null);
 
+            const isGold = selectedPortfolioAssetType === AssetType.GOLD && formData.portfolio_id;
+
             await apiClient.updateTransaction(transaction.transaction_id, {
                 date: formData.date,
                 type: formData.type as any,
@@ -146,6 +193,13 @@ export default function EditTransactionModal({
                 portfolio_id: formData.portfolio_id || undefined,
                 cash_account_id: formData.cash_account_id || undefined,
                 description: formData.description || undefined,
+                // Gold specific fields - explicit undefined if not gold to clear check (though backend merge might need care, usually PUT replaces or merges)
+                // Here we just send what's needed.
+                gold_type: isGold ? goldFields.gold_type : undefined,
+                quantity_chi: isGold ? parseFloat(goldFields.quantity_chi) : undefined,
+                unit_price: isGold && formData.amount && goldFields.quantity_chi
+                    ? parseFloat(formData.amount) / parseFloat(goldFields.quantity_chi)
+                    : undefined,
             });
 
             onSuccess();
@@ -207,11 +261,75 @@ export default function EditTransactionModal({
                         </div>
                     ) : (
                         <>
+                            {/* Gold-specific fields */}
+                            {selectedPortfolioAssetType === AssetType.GOLD && formData.portfolio_id && (
+                                <div className="p-4 bg-yellow-900/20 border border-yellow-700/50 rounded-lg space-y-4 mb-4">
+                                    <h4 className="text-yellow-500 font-medium">Physical Gold Details</h4>
+
+                                    {/* Gold Type Selection */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                                            Gold Type <span className="text-red-400">*</span>
+                                        </label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleGoldTypeChange(GoldType.BRANDED)}
+                                                className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${goldFields.gold_type === GoldType.BRANDED
+                                                        ? 'bg-yellow-600 text-white'
+                                                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                                                    }`}
+                                            >
+                                                Vàng Thương Hiệu
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleGoldTypeChange(GoldType.PRIVATE)}
+                                                className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${goldFields.gold_type === GoldType.PRIVATE
+                                                        ? 'bg-yellow-600 text-white'
+                                                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                                                    }`}
+                                            >
+                                                Vàng Tư Nhân
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Quantity in Chỉ */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                                            Quantity (Chỉ) <span className="text-red-400">*</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={goldFields.quantity_chi}
+                                            onChange={(e) => setGoldFields(prev => ({ ...prev, quantity_chi: e.target.value }))}
+                                            placeholder="0.00"
+                                            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all"
+                                        />
+                                        <p className="text-xs text-slate-500 mt-1">1 chỉ = 3.75 grams</p>
+                                    </div>
+
+                                    {/* Auto-calculated Unit Price Display */}
+                                    {goldFields.quantity_chi && formData.amount && parseFloat(goldFields.quantity_chi) > 0 && (
+                                        <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700">
+                                            <p className="text-xs text-slate-400">Unit Price (Auto-calculated)</p>
+                                            <p className="text-lg font-semibold text-yellow-400">
+                                                {getCurrencySymbol(settings.displayCurrency)}
+                                                {(parseFloat(formData.amount) / parseFloat(goldFields.quantity_chi)).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                                                <span className="text-sm text-slate-400"> / chỉ</span>
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Amount and Date */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="amount" className="block text-sm font-medium text-slate-300 mb-2">
-                                        Amount <span className="text-red-400">*</span>
+                                        Amount {selectedPortfolioAssetType === AssetType.GOLD ? '(Price)' : ''} <span className="text-red-400">*</span>
                                     </label>
                                     <div className="relative">
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{getCurrencySymbol(settings.displayCurrency)}</span>

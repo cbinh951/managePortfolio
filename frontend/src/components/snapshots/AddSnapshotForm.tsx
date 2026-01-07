@@ -3,19 +3,26 @@
 import { useState } from 'react';
 import { useSettings } from '@/contexts/SettingsContext';
 import { apiClient } from '@/services/api';
+import { AssetType } from '@/types/models';
 
 interface AddSnapshotFormProps {
     portfolioId: string;
+    assetType?: AssetType;
     onSuccess: () => void;
 }
 
-export default function AddSnapshotForm({ portfolioId, onSuccess }: AddSnapshotFormProps) {
+export default function AddSnapshotForm({ portfolioId, assetType, onSuccess }: AddSnapshotFormProps) {
     const { settings } = useSettings();
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         nav: '',
+        branded_gold_price: '',
+        private_gold_price: '',
     });
     const [displayNav, setDisplayNav] = useState('');
+    const [displayBrandedPrice, setDisplayBrandedPrice] = useState('');
+    const [displayPrivatePrice, setDisplayPrivatePrice] = useState('');
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -25,20 +32,21 @@ export default function AddSnapshotForm({ portfolioId, onSuccess }: AddSnapshotF
         setError(null);
     };
 
-    const handleNavChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleNumberChange = (
+        e: React.ChangeEvent<HTMLInputElement>,
+        field: 'nav' | 'branded_gold_price' | 'private_gold_price',
+        setDisplay: (val: string) => void
+    ) => {
         const value = e.target.value;
-        // Remove all non-digit characters
         const cleanValue = value.replace(/[^\d]/g, '');
 
-        // Update the actual value (numeric)
-        setFormData(prev => ({ ...prev, nav: cleanValue }));
+        setFormData(prev => ({ ...prev, [field]: cleanValue }));
 
-        // Update display value with formatting
         if (cleanValue) {
             const formatted = parseInt(cleanValue).toLocaleString();
-            setDisplayNav(formatted);
+            setDisplay(formatted);
         } else {
-            setDisplayNav('');
+            setDisplay('');
         }
 
         setError(null);
@@ -57,8 +65,13 @@ export default function AddSnapshotForm({ portfolioId, onSuccess }: AddSnapshotF
             return 'Snapshot date cannot be in the future';
         }
 
-        if (!formData.nav || parseFloat(formData.nav) <= 0) {
-            return 'NAV must be a positive number';
+        if (!formData.nav || parseFloat(formData.nav) < 0) {
+            // Allow 0 if gold prices are provided? 
+            // For now, let's always require NAV to be safe, or allow 0 if user wants.
+            // Requirement: "Input quantity... Record total amount."
+            // If I enforce > 0, user must calculate it.
+            // If I allow >= 0, user can put 0.
+            if (!formData.nav) return 'Total NAV is required (enter 0 if relying on system calc)';
         }
 
         return null;
@@ -80,15 +93,21 @@ export default function AddSnapshotForm({ portfolioId, onSuccess }: AddSnapshotF
             await apiClient.createSnapshot({
                 portfolio_id: portfolioId,
                 date: formData.date,
-                nav: parseFloat(formData.nav),
+                nav: parseFloat(formData.nav || '0'),
+                branded_gold_price: formData.branded_gold_price ? parseFloat(formData.branded_gold_price) : undefined,
+                private_gold_price: formData.private_gold_price ? parseFloat(formData.private_gold_price) : undefined,
             });
 
             // Reset form
             setFormData({
                 date: new Date().toISOString().split('T')[0],
                 nav: '',
+                branded_gold_price: '',
+                private_gold_price: '',
             });
             setDisplayNav('');
+            setDisplayBrandedPrice('');
+            setDisplayPrivatePrice('');
 
             onSuccess();
         } catch (err) {
@@ -99,6 +118,7 @@ export default function AddSnapshotForm({ portfolioId, onSuccess }: AddSnapshotF
     };
 
     const currencySymbol = settings.displayCurrency === 'USD' ? '$' : '₫';
+    const isGold = assetType === AssetType.GOLD;
 
     return (
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
@@ -134,6 +154,48 @@ export default function AddSnapshotForm({ portfolioId, onSuccess }: AddSnapshotF
                     />
                 </div>
 
+                {isGold && (
+                    <div className="p-3 bg-yellow-900/10 border border-yellow-700/30 rounded-lg space-y-3">
+                        <h4 className="text-xs font-semibold text-yellow-500 uppercase tracking-wider">Physical Gold Prices (Per Chỉ)</h4>
+
+                        <div>
+                            <label htmlFor="branded_price" className="block text-sm font-medium text-slate-300 mb-2">
+                                Branded Gold Price
+                            </label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
+                                <input
+                                    type="text"
+                                    id="branded_price"
+                                    value={displayBrandedPrice}
+                                    onChange={(e) => handleNumberChange(e, 'branded_gold_price', setDisplayBrandedPrice)}
+                                    placeholder="0"
+                                    className="w-full pl-8 pr-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                                    disabled={loading}
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label htmlFor="private_price" className="block text-sm font-medium text-slate-300 mb-2">
+                                Private Gold Price
+                            </label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
+                                <input
+                                    type="text"
+                                    id="private_price"
+                                    value={displayPrivatePrice}
+                                    onChange={(e) => handleNumberChange(e, 'private_gold_price', setDisplayPrivatePrice)}
+                                    placeholder="0"
+                                    className="w-full pl-8 pr-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                                    disabled={loading}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div>
                     <label htmlFor="nav" className="block text-sm font-medium text-slate-300 mb-2">
                         Total Net Asset Value <span className="text-red-400">*</span>
@@ -145,14 +207,16 @@ export default function AddSnapshotForm({ portfolioId, onSuccess }: AddSnapshotF
                             id="nav"
                             name="nav"
                             value={displayNav}
-                            onChange={handleNavChange}
+                            onChange={(e) => handleNumberChange(e, 'nav', setDisplayNav)}
                             placeholder="0"
                             className="w-full pl-8 pr-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             disabled={loading}
                         />
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
-                        Enter total value of all positions in this portfolio
+                        {isGold
+                            ? "Enter total portfolio value manually, or leave as 0 if relying on auto-calc (check logic)"
+                            : "Enter total value of all positions in this portfolio"}
                     </p>
                 </div>
 

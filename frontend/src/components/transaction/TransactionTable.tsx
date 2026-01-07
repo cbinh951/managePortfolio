@@ -138,13 +138,24 @@ function groupTransfers(
             processed.add(transaction.transaction_id);
             processed.add(pair.transaction_id);
         } else {
-            // Unpaired transfer - display as-is
+            // Unpaired transfer or regular transaction - display as-is
+            let description = transaction.description || '';
+
+            // enhanced description for gold transactions
+            if (transaction.gold_type && transaction.quantity_chi) {
+                const goldTypeLabel = transaction.gold_type === 'BRANDED' ? 'Vàng Thương Hiệu' : 'Vàng Tư Nhân';
+                const goldDetails = `[${goldTypeLabel}] ${transaction.quantity_chi} chỉ`;
+                description = description ? `${goldDetails} - ${description}` : goldDetails;
+            } else if (!description) {
+                description = transaction.type === 'TRANSFER' ? 'Transfer' : '-';
+            }
+
             consolidated.push({
                 id: transaction.transaction_id,
                 date: transaction.date,
                 type: transaction.type,
                 amount: transaction.amount,
-                description: transaction.description || 'Transfer',
+                description: description,
                 fromAccount: getAccountName(transaction.portfolio_id, transaction.cash_account_id),
                 toAccount: '',
                 fromAccountId: transaction.portfolio_id || transaction.cash_account_id || '',

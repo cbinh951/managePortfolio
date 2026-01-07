@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Snapshot } from '@/types/models';
+import { Snapshot, AssetType } from '@/types/models';
 import { useSettings } from '@/contexts/SettingsContext';
 import { apiClient } from '@/services/api';
 
@@ -10,6 +10,7 @@ interface EditSnapshotModalProps {
     snapshot: Snapshot | null;
     onClose: () => void;
     onSuccess: () => void;
+    assetType?: AssetType;
 }
 
 export default function EditSnapshotModal({
@@ -17,13 +18,18 @@ export default function EditSnapshotModal({
     snapshot,
     onClose,
     onSuccess,
+    assetType,
 }: EditSnapshotModalProps) {
     const { settings } = useSettings();
     const [formData, setFormData] = useState({
         date: '',
         nav: '',
+        branded_gold_price: '',
+        private_gold_price: '',
     });
     const [displayNav, setDisplayNav] = useState('');
+    const [displayBrandedPrice, setDisplayBrandedPrice] = useState('');
+    const [displayPrivatePrice, setDisplayPrivatePrice] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -32,9 +38,13 @@ export default function EditSnapshotModal({
             setFormData({
                 date: snapshot.date,
                 nav: snapshot.nav.toString(),
+                branded_gold_price: snapshot.branded_gold_price?.toString() || '',
+                private_gold_price: snapshot.private_gold_price?.toString() || '',
             });
             // Set display value with formatting
             setDisplayNav(snapshot.nav.toLocaleString());
+            setDisplayBrandedPrice(snapshot.branded_gold_price ? snapshot.branded_gold_price.toLocaleString() : '');
+            setDisplayPrivatePrice(snapshot.private_gold_price ? snapshot.private_gold_price.toLocaleString() : '');
         }
     }, [snapshot]);
 
@@ -44,20 +54,21 @@ export default function EditSnapshotModal({
         setError(null);
     };
 
-    const handleNavChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleNumberChange = (
+        e: React.ChangeEvent<HTMLInputElement>,
+        field: 'nav' | 'branded_gold_price' | 'private_gold_price',
+        setDisplay: (val: string) => void
+    ) => {
         const value = e.target.value;
-        // Remove all non-digit characters
         const cleanValue = value.replace(/[^\d]/g, '');
 
-        // Update the actual value (numeric)
-        setFormData(prev => ({ ...prev, nav: cleanValue }));
+        setFormData(prev => ({ ...prev, [field]: cleanValue }));
 
-        // Update display value with formatting
         if (cleanValue) {
             const formatted = parseInt(cleanValue).toLocaleString();
-            setDisplayNav(formatted);
+            setDisplay(formatted);
         } else {
-            setDisplayNav('');
+            setDisplay('');
         }
 
         setError(null);
@@ -76,8 +87,8 @@ export default function EditSnapshotModal({
             return 'Snapshot date cannot be in the future';
         }
 
-        if (!formData.nav || parseFloat(formData.nav) <= 0) {
-            return 'NAV must be a positive number';
+        if (!formData.nav || parseFloat(formData.nav) < 0) {
+            if (!formData.nav) return 'Total NAV is required';
         }
 
         return null;
@@ -102,6 +113,8 @@ export default function EditSnapshotModal({
             await apiClient.updateSnapshot(snapshot.snapshot_id, {
                 date: formData.date,
                 nav: parseFloat(formData.nav),
+                branded_gold_price: formData.branded_gold_price ? parseFloat(formData.branded_gold_price) : undefined,
+                private_gold_price: formData.private_gold_price ? parseFloat(formData.private_gold_price) : undefined,
             });
 
             onSuccess();
@@ -119,6 +132,9 @@ export default function EditSnapshotModal({
     };
 
     if (!isOpen || !snapshot) return null;
+
+    const currencySymbol = settings.displayCurrency === 'USD' ? '$' : '₫';
+    const isGold = assetType === AssetType.GOLD;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -163,18 +179,60 @@ export default function EditSnapshotModal({
                         />
                     </div>
 
+                    {isGold && (
+                        <div className="p-3 bg-yellow-900/10 border border-yellow-700/30 rounded-lg space-y-3">
+                            <h4 className="text-xs font-semibold text-yellow-500 uppercase tracking-wider">Physical Gold Prices</h4>
+
+                            <div>
+                                <label htmlFor="edit-branded" className="block text-sm font-medium text-slate-300 mb-2">
+                                    Branded Gold (per chỉ)
+                                </label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
+                                    <input
+                                        type="text"
+                                        id="edit-branded"
+                                        value={displayBrandedPrice}
+                                        onChange={(e) => handleNumberChange(e, 'branded_gold_price', setDisplayBrandedPrice)}
+                                        placeholder="0"
+                                        className="w-full pl-8 pr-4 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                                        disabled={loading}
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label htmlFor="edit-private" className="block text-sm font-medium text-slate-300 mb-2">
+                                    Private Gold (per chỉ)
+                                </label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
+                                    <input
+                                        type="text"
+                                        id="edit-private"
+                                        value={displayPrivatePrice}
+                                        onChange={(e) => handleNumberChange(e, 'private_gold_price', setDisplayPrivatePrice)}
+                                        placeholder="0"
+                                        className="w-full pl-8 pr-4 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                                        disabled={loading}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div>
                         <label htmlFor="edit-nav" className="block text-sm font-medium text-slate-300 mb-2">
                             Net Asset Value <span className="text-red-400">*</span>
                         </label>
                         <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{settings.displayCurrency === 'USD' ? '$' : '₫'}</span>
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
                             <input
                                 type="text"
                                 id="edit-nav"
                                 name="nav"
                                 value={displayNav}
-                                onChange={handleNavChange}
+                                onChange={(e) => handleNumberChange(e, 'nav', setDisplayNav)}
                                 placeholder="0"
                                 className="w-full pl-8 pr-4 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 disabled={loading}

@@ -48,10 +48,18 @@ export function createSnapshotRoutes(csvService: CsvService): Router {
     // Create new snapshot
     router.post('/', async (req: Request, res: Response) => {
         try {
-            const data: CreateSnapshotRequest = req.body;
+            const data: CreateSnapshotRequest & {
+                branded_gold_price?: number;
+                private_gold_price?: number;
+            } = req.body;
+
             const snapshot: Snapshot = {
                 snapshot_id: csvService.generateId('SNP'),
-                ...data,
+                portfolio_id: data.portfolio_id,
+                date: data.date,
+                nav: data.nav,
+                branded_gold_price: data.branded_gold_price,
+                private_gold_price: data.private_gold_price,
             };
 
             await csvService.appendCsv('snapshots.csv', snapshot, [
@@ -59,6 +67,8 @@ export function createSnapshotRoutes(csvService: CsvService): Router {
                 { id: 'portfolio_id', title: 'portfolio_id' },
                 { id: 'date', title: 'date' },
                 { id: 'nav', title: 'nav' },
+                { id: 'branded_gold_price', title: 'branded_gold_price' },
+                { id: 'private_gold_price', title: 'private_gold_price' },
             ]);
 
             const response: ApiResponse<typeof snapshot> = {
@@ -80,7 +90,12 @@ export function createSnapshotRoutes(csvService: CsvService): Router {
     router.put('/:id', async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const updateData: { date?: string; nav?: number } = req.body;
+            const updateData: {
+                date?: string;
+                nav?: number;
+                branded_gold_price?: number;
+                private_gold_price?: number;
+            } = req.body;
 
             const snapshots = await csvService.readCsv<Snapshot>('snapshots.csv');
             const index = snapshots.findIndex(s => s.snapshot_id === id);
@@ -94,18 +109,18 @@ export function createSnapshotRoutes(csvService: CsvService): Router {
             }
 
             // Update snapshot fields
-            if (updateData.date !== undefined) {
-                snapshots[index].date = updateData.date;
-            }
-            if (updateData.nav !== undefined) {
-                snapshots[index].nav = updateData.nav;
-            }
+            if (updateData.date !== undefined) snapshots[index].date = updateData.date;
+            if (updateData.nav !== undefined) snapshots[index].nav = updateData.nav;
+            if (updateData.branded_gold_price !== undefined) snapshots[index].branded_gold_price = updateData.branded_gold_price;
+            if (updateData.private_gold_price !== undefined) snapshots[index].private_gold_price = updateData.private_gold_price;
 
             await csvService.writeCsv('snapshots.csv', snapshots, [
                 { id: 'snapshot_id', title: 'snapshot_id' },
                 { id: 'portfolio_id', title: 'portfolio_id' },
                 { id: 'date', title: 'date' },
                 { id: 'nav', title: 'nav' },
+                { id: 'branded_gold_price', title: 'branded_gold_price' },
+                { id: 'private_gold_price', title: 'private_gold_price' },
             ]);
 
             const response: ApiResponse<Snapshot> = {
@@ -147,6 +162,8 @@ export function createSnapshotRoutes(csvService: CsvService): Router {
                 { id: 'portfolio_id', title: 'portfolio_id' },
                 { id: 'date', title: 'date' },
                 { id: 'nav', title: 'nav' },
+                { id: 'branded_gold_price', title: 'branded_gold_price' },
+                { id: 'private_gold_price', title: 'private_gold_price' },
             ]);
 
             const response: ApiResponse<null> = {
