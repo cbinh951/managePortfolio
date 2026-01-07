@@ -92,7 +92,7 @@ export interface PortfolioPerformance {
     current_nav: number;
     profit: number;
     profit_percentage: number;
-    xirr: number;
+    xirr: number | null;  // null when XIRR calculation fails to converge
 }
 
 export interface CashBalance {

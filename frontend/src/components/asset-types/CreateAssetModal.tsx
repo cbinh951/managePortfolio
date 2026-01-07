@@ -116,6 +116,7 @@ export default function CreateAssetModal({
                             <option value="CASH">Cash</option>
                             <option value="GOLD">Gold</option>
                             <option value="FOREX">Forex</option>
+                            <option value="CRYPTO">Cryptocurrency</option>
                         </select>
                     </div>
 

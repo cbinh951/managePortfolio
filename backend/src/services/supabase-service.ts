@@ -707,7 +707,7 @@ export class SupabaseService {
         const profitPercentage = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
 
         // Calculate XIRR
-        let xirrValue = 0;
+        let xirrValue: number | null = null;
         try {
             const cashFlows = transactions
                 .filter(t => t.type === TransactionType.DEPOSIT ||
@@ -726,7 +726,10 @@ export class SupabaseService {
                 xirrValue = xirr(cashFlows) * 100;
             }
         } catch (error) {
-            console.error('Error calculating XIRR:', error);
+            // XIRR calculation can fail when Newton-Raphson algorithm doesn't converge
+            // This commonly happens with unusual cash flow patterns
+            console.error('Error calculating XIRR (algorithm may not have converged):', error);
+            xirrValue = null; // Return null to indicate XIRR couldn't be calculated
         }
 
         return {
@@ -861,7 +864,10 @@ export class SupabaseService {
                     if (performance) {
                         totalNetWorth += performance.current_nav;
                         totalInvested += performance.total_invested;
-                        xirrs.push(performance.xirr);
+                        // Only include valid XIRR values (filter out null)
+                        if (performance.xirr !== null) {
+                            xirrs.push(performance.xirr);
+                        }
                     }
                 } catch (error) {
                     console.error(`Error getting performance for portfolio ${portfolio.portfolio_id}:`, error);

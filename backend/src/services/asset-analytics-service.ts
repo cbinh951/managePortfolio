@@ -63,7 +63,10 @@ export class AssetAnalyticsService {
                     if (performance) {
                         totalNetWorth += performance.current_nav;
                         totalInvested += performance.total_invested;
-                        xirrs.push(performance.xirr);
+                        // Only include valid XIRR values (filter out null)
+                        if (performance.xirr !== null) {
+                            xirrs.push(performance.xirr);
+                        }
                     }
                 } catch (error) {
                     console.error(`Error getting performance for portfolio ${portfolio.portfolio_id}:`, error);

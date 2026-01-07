@@ -63,12 +63,13 @@ export function createSupabaseMasterRoutes(): Router {
     router.put('/assets/:id', async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const { asset_name } = req.body;
+            const { asset_name, asset_type } = req.body;
 
 
 
             const updates: Partial<Asset> = {};
             if (asset_name) updates.asset_name = asset_name.trim();
+            if (asset_type !== undefined) updates.asset_type = asset_type;
 
             const asset = await supabaseService.updateAsset(id, updates);
             if (!asset) {
