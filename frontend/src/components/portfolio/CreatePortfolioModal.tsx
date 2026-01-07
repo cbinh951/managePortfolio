@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { apiClient } from '@/services/api';
 import { Asset, Platform, Strategy } from '@/types/models';
 
@@ -62,11 +62,23 @@ export default function CreatePortfolioModal({
         }
     };
 
+    // Filter platforms based on selected asset
+    const filteredPlatforms = useMemo(() => {
+        if (!formData.asset_id) return platforms;
+        return platforms.filter(platform => platform.asset_id === formData.asset_id);
+    }, [formData.asset_id, platforms]);
+
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
     ) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+
+        // If asset type changes, reset platform selection
+        if (name === 'asset_id') {
+            setFormData((prev) => ({ ...prev, [name]: value, platform_id: '' }));
+        } else {
+            setFormData((prev) => ({ ...prev, [name]: value }));
+        }
     };
 
     const validateForm = (): string | null => {
@@ -268,10 +280,17 @@ export default function CreatePortfolioModal({
                                         value={formData.platform_id}
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                        disabled={loading}
+                                        disabled={loading || !formData.asset_id}
                                     >
-                                        <option value="">Select platform</option>
-                                        {platforms.map((platform) => (
+                                        <option value="">
+                                            {!formData.asset_id
+                                                ? 'Select asset type first'
+                                                : filteredPlatforms.length === 0
+                                                    ? 'No platforms available for this asset'
+                                                    : 'Select platform'
+                                            }
+                                        </option>
+                                        {filteredPlatforms.map((platform) => (
                                             <option key={platform.platform_id} value={platform.platform_id}>
                                                 {platform.platform_name}
                                             </option>

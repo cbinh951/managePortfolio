@@ -26,6 +26,7 @@ import {
     createSupabaseSnapshotRoutes,
     createSupabaseDashboardRoutes,
     createSupabaseMasterRoutes,
+    createSupabaseAssetAnalyticsRoutes,
 } from './routes/supabase';
 
 const app: Express = express();
@@ -77,6 +78,7 @@ if (USE_SUPABASE) {
     app.use('/api/snapshots', createSupabaseSnapshotRoutes());
     app.use('/api/dashboard', createSupabaseDashboardRoutes());
     app.use('/api/master', createSupabaseMasterRoutes());
+    app.use('/api/asset-analytics', createSupabaseAssetAnalyticsRoutes());
 } else {
     console.log('📁 Using CSV files for data storage');
     const csvService = new CsvService(DATA_PATH);

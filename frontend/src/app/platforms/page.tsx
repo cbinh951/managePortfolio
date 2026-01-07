@@ -121,26 +121,12 @@ export default function PlatformsPage() {
                 </div>
 
                 {/* Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-6 mb-8">
                     <PlatformCard
                         title="Total Connected"
                         value={loading ? '...' : platforms.length}
                         subtitle="Active platforms"
                         icon={<LayersIcon />}
-                        iconBg="bg-slate-700/30"
-                    />
-                    <PlatformCard
-                        title="Total Assets"
-                        value={loading ? '...' : `${getCurrencySymbol(settings.displayCurrency)}0.00`}
-                        subtitle="Across all platforms"
-                        icon={<DollarIcon />}
-                        iconBg="bg-slate-700/30"
-                    />
-                    <PlatformCard
-                        title="Last Sync"
-                        value={loading ? '...' : 'Just now'}
-                        subtitle="All platforms synced"
-                        icon={<ClockIcon />}
                         iconBg="bg-slate-700/30"
                     />
                 </div>
