@@ -124,7 +124,7 @@ export default function AssetTypeTable({ assets, onEdit, onDelete, onViewDetails
                                 >
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center gap-3">
-                                            {getAssetIcon(asset.asset_type)}
+                                            {getAssetIcon(asset.asset_name)}
                                             <div>
                                                 <div className="text-sm font-medium text-white">
                                                     {asset.asset_name}
