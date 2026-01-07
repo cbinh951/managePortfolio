@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/services/api';
-import { Portfolio, CashAccount, Transaction, Snapshot, PortfolioPerformance, CashBalance } from '@/types/models';
+import { Portfolio, CashAccount, Transaction, Snapshot, PortfolioPerformance, CashBalance, Asset, AssetType, GoldType } from '@/types/models';
 import MetricCard from '@/components/portfolio/MetricCard';
 import TabNavigation from '@/components/portfolio/TabNavigation';
 import OverviewTab from '@/components/portfolio/OverviewTab';
@@ -29,6 +29,7 @@ interface PortfolioDetailData {
     cashBalance?: CashBalance;
     transactions: Transaction[];
     snapshots: Snapshot[];
+    asset?: Asset;
 }
 
 export default function PortfolioDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -46,6 +47,33 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
     const [isEditTransactionModalOpen, setIsEditTransactionModalOpen] = useState(false);
     const [isDeleteTransactionModalOpen, setIsDeleteTransactionModalOpen] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+
+    // Derived state - specific calculations moved up to respect Hook rules
+    const isPortfolio = data?.type === 'portfolio';
+
+    const goldHoldings = useMemo(() => {
+        if (!data || data.type !== 'portfolio' || data.asset?.asset_type !== AssetType.GOLD) return null;
+
+        let branded = 0;
+        let privateGold = 0;
+
+        data.transactions.forEach(t => {
+            if (!t.quantity_chi) return;
+            const qty = Number(t.quantity_chi);
+            const isAddition = t.type === 'BUY' || t.type === 'DEPOSIT';
+            const isSubtraction = t.type === 'SELL' || t.type === 'WITHDRAW';
+
+            if (t.gold_type === GoldType.BRANDED) {
+                if (isAddition) branded += qty;
+                if (isSubtraction) branded -= qty;
+            } else if (t.gold_type === GoldType.PRIVATE) {
+                if (isAddition) privateGold += qty;
+                if (isSubtraction) privateGold -= qty;
+            }
+        });
+
+        return { branded, privateGold };
+    }, [data]);
 
     useEffect(() => {
         loadPortfolioData();
@@ -81,10 +109,17 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                 });
             } else {
                 // Fetch as portfolio
-                const portfolio = await apiClient.getPortfolio(id);
-                const performance = await apiClient.getPortfolioPerformance(id);
-                const transactions = await apiClient.getPortfolioTransactions(id);
-                const snapshots = await apiClient.getPortfolioSnapshots(id);
+                // Fetch as portfolio
+                // We use Promise.all for parallel fetching
+                const [portfolio, performance, transactions, snapshots, assets] = await Promise.all([
+                    apiClient.getPortfolio(id),
+                    apiClient.getPortfolioPerformance(id),
+                    apiClient.getPortfolioTransactions(id),
+                    apiClient.getPortfolioSnapshots(id),
+                    apiClient.getAssets(),
+                ]);
+
+                const asset = assets.find(a => a.asset_id === portfolio.asset_id);
 
                 setData({
                     type: 'portfolio',
@@ -93,6 +128,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                     performance,
                     transactions,
                     snapshots,
+                    asset,
                 });
             }
         } catch (err) {
@@ -205,12 +241,11 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
         );
     }
 
-    const isPortfolio = data.type === 'portfolio';
-    const currentBalance = isPortfolio ? data.performance?.current_nav || 0 : data.cashBalance?.balance || 0;
-    const totalInvested = isPortfolio ? data.performance?.total_invested || 0 : 0;
-    const profit = isPortfolio ? data.performance?.profit || 0 : 0;
-    const profitPercentage = isPortfolio ? data.performance?.profit_percentage || 0 : 0;
-    const xirr = isPortfolio ? data.performance?.xirr || null : null;
+    const currentBalance = isPortfolio ? data!.performance?.current_nav || 0 : data!.cashBalance?.balance || 0;
+    const totalInvested = isPortfolio ? data!.performance?.total_invested || 0 : 0;
+    const profit = isPortfolio ? data!.performance?.profit || 0 : 0;
+    const profitPercentage = isPortfolio ? data!.performance?.profit_percentage || 0 : 0;
+    const xirr = isPortfolio ? data!.performance?.xirr || null : null;
 
     const tabs = [
         { id: 'overview', label: 'Overview', hidden: !isPortfolio },
@@ -278,7 +313,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                 </div>
 
                 {/* Summary Metrics */}
-                <div className={`grid grid-cols-1 ${isPortfolio ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-6 mb-8`}>
+                <div className={`grid grid-cols-1 ${isPortfolio ? (goldHoldings ? 'md:grid-cols-3' : 'md:grid-cols-4') : 'md:grid-cols-3'} gap-6 mb-8`}>
                     <MetricCard
                         label={isPortfolio ? 'CURRENT NAV' : 'CURRENT BALANCE'}
                         value={formatCurrency(currentBalance, 'VND', settings.displayCurrency, settings.exchangeRate)}
@@ -336,6 +371,20 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                             valueColor={xirr >= 0 ? 'text-emerald-400' : 'text-red-400'}
                         />
                     )}
+                    {goldHoldings && (
+                        <>
+                            <MetricCard
+                                label="BRANDED GOLD HOLDINGS"
+                                value={`${goldHoldings.branded.toLocaleString()} chỉ`}
+                                valueColor="text-yellow-500"
+                            />
+                            <MetricCard
+                                label="PRIVATE GOLD HOLDINGS"
+                                value={`${goldHoldings.privateGold.toLocaleString()} chỉ`}
+                                valueColor="text-yellow-600"
+                            />
+                        </>
+                    )}
                 </div>
 
                 {/* Tab Navigation */}
@@ -362,7 +411,12 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                         />
                     )}
                     {activeTab === 'snapshots' && isPortfolio && (
-                        <SnapshotsTab snapshots={data.snapshots} portfolioId={id} />
+                        <SnapshotsTab
+                            snapshots={data.snapshots}
+                            portfolioId={id}
+                            assetType={data.asset?.asset_type as AssetType}
+                            onUpdate={loadPortfolioData}
+                        />
                     )}
                     {activeTab === 'performance' && (
                         <PerformanceTab

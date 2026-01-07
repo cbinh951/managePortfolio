@@ -8,7 +8,7 @@ interface CreatePlatformModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: (platform: Platform) => void;
-    onCreate: (data: { platform_name: string; platform_type: string; asset_id: string }) => Promise<Platform>;
+    onCreate: (data: { platform_name: string; asset_id: string }) => Promise<Platform>;
 }
 
 export default function CreatePlatformModal({
@@ -18,6 +18,7 @@ export default function CreatePlatformModal({
     onCreate,
 }: CreatePlatformModalProps) {
     const [platformName, setPlatformName] = useState('');
+    // const [platformType, setPlatformType] = useState('BROKER'); // Removed
     const [assetId, setAssetId] = useState('');
     const [assets, setAssets] = useState<Asset[]>([]);
     const [loading, setLoading] = useState(false);
@@ -59,11 +60,11 @@ export default function CreatePlatformModal({
             setLoading(true);
             const newPlatform = await onCreate({
                 platform_name: platformName,
-                platform_type: platformName,
                 asset_id: assetId,
             });
             onSuccess(newPlatform);
             setPlatformName('');
+            // setPlatformType('BROKER');
             setAssetId('');
             onClose();
         } catch (err) {
@@ -75,6 +76,7 @@ export default function CreatePlatformModal({
 
     const handleClose = () => {
         setPlatformName('');
+        // setPlatformType('BROKER');
         setAssetId('');
         setError('');
         onClose();
@@ -111,7 +113,7 @@ export default function CreatePlatformModal({
                             disabled={loading}
                         />
                     </div>
-
+                    {/* Removed Platform Type Input */}
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-2">Asset Type *</label>
                         <select

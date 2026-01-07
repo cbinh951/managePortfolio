@@ -178,8 +178,6 @@ export function createSupabaseMasterRoutes(): Router {
             const { id } = req.params;
             const { platform_name, asset_id } = req.body;
 
-
-
             const updates: Partial<Platform> = {};
             if (platform_name) updates.platform_name = platform_name.trim();
             if (asset_id !== undefined) updates.asset_id = asset_id;

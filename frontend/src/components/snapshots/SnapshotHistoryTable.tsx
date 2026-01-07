@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Snapshot } from '@/types/models';
+import { Snapshot, AssetType } from '@/types/models';
 import EditSnapshotModal from './EditSnapshotModal';
 import DeleteConfirmationDialog from './DeleteConfirmationDialog';
 import { useSettings } from '@/contexts/SettingsContext';
@@ -12,9 +12,10 @@ interface SnapshotHistoryTableProps {
     snapshots: Snapshot[];
     loading?: boolean;
     onUpdate?: () => void;
+    assetType?: AssetType;
 }
 
-export default function SnapshotHistoryTable({ snapshots, loading = false, onUpdate }: SnapshotHistoryTableProps) {
+export default function SnapshotHistoryTable({ snapshots, loading = false, onUpdate, assetType }: SnapshotHistoryTableProps) {
     const { settings } = useSettings();
     const [editingSnapshot, setEditingSnapshot] = useState<Snapshot | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -137,9 +138,9 @@ export default function SnapshotHistoryTable({ snapshots, loading = false, onUpd
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-white">History</h3>
-                    <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors cursor-pointer">
-                        View Full Page
-                    </button>
+                    <div className="text-sm text-slate-400">
+                        {sortedSnapshots.length} snapshot{sortedSnapshots.length !== 1 ? 's' : ''}
+                    </div>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -159,6 +160,16 @@ export default function SnapshotHistoryTable({ snapshots, loading = false, onUpd
                                         )}
                                     </div>
                                 </th>
+                                {assetType === AssetType.GOLD && (
+                                    <>
+                                        <th className="text-right py-3 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                            Branded (Chỉ)
+                                        </th>
+                                        <th className="text-right py-3 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                            Private (Chỉ)
+                                        </th>
+                                    </>
+                                )}
                                 <th
                                     onClick={() => handleSort('nav')}
                                     className="text-right py-3 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors select-none"
@@ -191,7 +202,7 @@ export default function SnapshotHistoryTable({ snapshots, loading = false, onUpd
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700/50">
-                            {sortedSnapshots.slice(0, 5).map((snapshot, index) => {
+                            {sortedSnapshots.map((snapshot) => {
                                 // Calculate change from previous snapshot in date-sorted order
                                 const dateSorted = [...snapshots].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                                 const dateIndex = dateSorted.findIndex(s => s.snapshot_id === snapshot.snapshot_id);
@@ -209,6 +220,20 @@ export default function SnapshotHistoryTable({ snapshots, loading = false, onUpd
                                                 day: 'numeric',
                                             })}
                                         </td>
+                                        {assetType === AssetType.GOLD && (
+                                            <>
+                                                <td className="py-3 px-6 text-sm text-yellow-500 text-right">
+                                                    {snapshot.branded_gold_price
+                                                        ? formatCurrency(snapshot.branded_gold_price, 'VND', settings.displayCurrency, settings.exchangeRate)
+                                                        : '-'}
+                                                </td>
+                                                <td className="py-3 px-6 text-sm text-yellow-500 text-right">
+                                                    {snapshot.private_gold_price
+                                                        ? formatCurrency(snapshot.private_gold_price, 'VND', settings.displayCurrency, settings.exchangeRate)
+                                                        : '-'}
+                                                </td>
+                                            </>
+                                        )}
                                         <td className="py-3 px-6 text-sm font-semibold text-white text-right">
                                             {formatCurrency(snapshot.nav, 'VND', settings.displayCurrency, settings.exchangeRate)}
                                         </td>
@@ -251,14 +276,6 @@ export default function SnapshotHistoryTable({ snapshots, loading = false, onUpd
                         </tbody>
                     </table>
                 </div>
-
-                {sortedSnapshots.length > 5 && (
-                    <div className="border-t border-slate-700 px-6 py-3 text-center">
-                        <span className="text-sm text-slate-400">
-                            Showing 5 of {sortedSnapshots.length} snapshots
-                        </span>
-                    </div>
-                )}
             </div>
 
             {/* Edit Modal */}
@@ -267,6 +284,7 @@ export default function SnapshotHistoryTable({ snapshots, loading = false, onUpd
                 snapshot={editingSnapshot}
                 onClose={handleCloseModal}
                 onSuccess={handleEditSuccess}
+                assetType={assetType}
             />
 
             {/* Delete Confirmation Dialog */}

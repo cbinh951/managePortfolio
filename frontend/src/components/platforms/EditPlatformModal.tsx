@@ -9,7 +9,7 @@ interface EditPlatformModalProps {
     platform: Platform | null;
     onClose: () => void;
     onSuccess: (platform: Platform) => void;
-    onUpdate: (id: string, data: { platform_name?: string; platform_type?: string; asset_id?: string }) => Promise<Platform>;
+    onUpdate: (id: string, data: { platform_name?: string; asset_id?: string }) => Promise<Platform>;
 }
 
 export default function EditPlatformModal({
@@ -20,6 +20,7 @@ export default function EditPlatformModal({
     onUpdate,
 }: EditPlatformModalProps) {
     const [platformName, setPlatformName] = useState('');
+    // const [platformType, setPlatformType] = useState('BROKER'); // Removed
     const [assetId, setAssetId] = useState('');
     const [assets, setAssets] = useState<Asset[]>([]);
     const [loading, setLoading] = useState(false);
@@ -28,6 +29,7 @@ export default function EditPlatformModal({
     useEffect(() => {
         if (platform) {
             setPlatformName(platform.platform_name);
+            // setPlatformType(platform.platform_type);
             setAssetId(platform.asset_id);
         }
     }, [platform]);
@@ -62,7 +64,6 @@ export default function EditPlatformModal({
             setLoading(true);
             const updatedPlatform = await onUpdate(platform.platform_id, {
                 platform_name: platformName,
-                platform_type: platformName,
                 asset_id: assetId,
             });
             onSuccess(updatedPlatform);
@@ -138,7 +139,7 @@ export default function EditPlatformModal({
                         />
                     </div>
 
-
+                    {/* Removed Platform Type Input */}
 
                     <div>
                         <label className="block text-sm font-medium text-slate-300 mb-2">

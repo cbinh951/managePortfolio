@@ -12,20 +12,11 @@ interface PlatformTableProps {
 }
 
 // Platform type icons and colors
-const getPlatformIcon = (type: string | undefined) => {
-    if (!type) {
-        return {
-            icon: (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-            ),
-            bg: 'bg-slate-500/10',
-            text: 'text-slate-400',
-        };
-    }
-    switch (type.toUpperCase()) {
-        case 'BROKER':
+// Platform type icons and colors
+const getPlatformIcon = (type: string) => {
+    switch (type?.toUpperCase()) {
+        case 'STOCK':
+        case 'FOREX':
             return {
                 icon: (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,7 +26,7 @@ const getPlatformIcon = (type: string | undefined) => {
                 bg: 'bg-blue-500/10',
                 text: 'text-blue-400',
             };
-        case 'BANK':
+        case 'CASH':
             return {
                 icon: (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,6 +36,8 @@ const getPlatformIcon = (type: string | undefined) => {
                 bg: 'bg-green-500/10',
                 text: 'text-green-400',
             };
+        case 'GOLD':
+        case 'CRYPTO':
         case 'WALLET':
             return {
                 icon: (
@@ -85,7 +78,12 @@ export default function PlatformTable({ platforms, onEdit, onDelete, selectedTyp
         }
     };
 
-    // Helper to get asset name by ID
+    // Helper to get asset type by ID
+    const getAssetType = (assetId: string) => {
+        const asset = assets.find(a => a.asset_id === assetId);
+        return asset ? asset.asset_type : '';
+    };
+
     const getAssetName = (assetId: string) => {
         const asset = assets.find(a => a.asset_id === assetId);
         return asset ? asset.asset_name : assetId;
@@ -93,11 +91,14 @@ export default function PlatformTable({ platforms, onEdit, onDelete, selectedTyp
 
     // Filter platforms based on search and type
     const filteredPlatforms = platforms.filter(platform => {
+        const platformAssetType = getAssetType(platform.asset_id) || '';
+
         const matchesSearch = searchQuery.toLowerCase() === '' ||
             platform.platform_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            platform.platform_id.toLowerCase().includes(searchQuery.toLowerCase());
+            platform.platform_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            platformAssetType.toLowerCase().includes(searchQuery.toLowerCase());
 
-        const matchesType = selectedType === 'ALL' || platform.platform_name === selectedType;
+        const matchesType = selectedType === 'ALL' || platformAssetType === selectedType;
 
         return matchesSearch && matchesType;
     });
@@ -136,7 +137,7 @@ export default function PlatformTable({ platforms, onEdit, onDelete, selectedTyp
                     </thead>
                     <tbody className="divide-y divide-slate-700/30">
                         {filteredPlatforms.map((platform) => {
-                            const iconConfig = getPlatformIcon(platform.platform_name);
+                            const iconConfig = getPlatformIcon(getAssetType(platform.asset_id) || '');
                             return (
                                 <tr key={platform.platform_id} className="hover:bg-slate-700/20 transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap">

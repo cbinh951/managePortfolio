@@ -29,7 +29,7 @@ const DollarIcon = () => (
     </svg>
 );
 
-type FilterType = 'ALL' | 'BROKER' | 'BANK' | 'WALLET';
+type FilterType = 'ALL' | 'STOCK' | 'CASH' | 'GOLD' | 'FOREX';
 
 export default function PlatformsPage() {
     const { settings } = useSettings();
@@ -59,11 +59,13 @@ export default function PlatformsPage() {
         }
     };
 
-    const handleCreate = async (data: { platform_name: string; platform_type: string; asset_id: string }) => {
+    const handleCreate = async (data: { platform_name: string; asset_id: string }) => {
+        // @ts-ignore - API client type update pending
         return await apiClient.createPlatform(data);
     };
 
-    const handleUpdate = async (id: string, data: { platform_name?: string; platform_type?: string; asset_id?: string }) => {
+    const handleUpdate = async (id: string, data: { platform_name?: string; asset_id?: string }) => {
+        // @ts-ignore - API client type update pending
         return await apiClient.updatePlatform(id, data);
     };
 
@@ -94,10 +96,11 @@ export default function PlatformsPage() {
     };
 
     const filterButtons: { label: string; value: FilterType }[] = [
-        { label: 'All Types', value: 'ALL' },
-        { label: 'Brokerage', value: 'BROKER' },
-        { label: 'Banking', value: 'BANK' },
-        { label: 'Wallet', value: 'WALLET' },
+        { label: 'All', value: 'ALL' },
+        { label: 'Stocks', value: 'STOCK' },
+        { label: 'Cash', value: 'CASH' },
+        { label: 'Gold', value: 'GOLD' },
+        { label: 'Forex', value: 'FOREX' },
     ];
 
     return (

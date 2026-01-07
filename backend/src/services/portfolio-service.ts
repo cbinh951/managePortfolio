@@ -1,5 +1,6 @@
 import { CsvService } from './csv-service';
-import { Portfolio, Transaction, Snapshot, PortfolioPerformance } from '../types/models';
+import { Portfolio, Transaction, Snapshot, PortfolioPerformance, Asset, AssetType } from '../types/models';
+import { GoldService } from './gold-service';
 import {
     calculateTotalInvested,
     calculateXIRR,
@@ -8,9 +9,11 @@ import {
 
 export class PortfolioService {
     private csvService: CsvService;
+    private goldService: GoldService;
 
     constructor(csvService: CsvService) {
         this.csvService = csvService;
+        this.goldService = new GoldService(csvService);
     }
 
     async getAllPortfolios(): Promise<Portfolio[]> {
@@ -44,8 +47,14 @@ export class PortfolioService {
         const portfolio = await this.getPortfolioById(portfolioId);
         if (!portfolio) return null;
 
-        console.log('\n=== XIRR Calculation Debug ===');
+        // Get asset details to check if it's a gold portfolio
+        const assets = await this.csvService.readCsv<Asset>('master/assets.csv');
+        const asset = assets.find(a => a.asset_id === portfolio.asset_id);
+        const isGoldPortfolio = asset?.asset_type === AssetType.GOLD;
+
+        console.log('\n=== Performance Calculation Debug ===');
         console.log('Portfolio ID:', portfolioId);
+        console.log('Asset Type:', asset?.asset_type);
 
         // Get transactions for this portfolio
         const allTransactions = await this.csvService.readCsv<Transaction>('transactions.csv');
@@ -59,8 +68,27 @@ export class PortfolioService {
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         console.log('Snapshots count:', snapshots.length);
 
-        const currentNAV = snapshots.length > 0 ? parseFloat(snapshots[0].nav.toString()) : 0;
-        console.log('Current NAV:', currentNAV);
+        let currentNAV = 0;
+        const latestSnapshot = snapshots.length > 0 ? snapshots[0] : null;
+
+        if (latestSnapshot) {
+            if (isGoldPortfolio) {
+                // For gold portfolios, try to calculate NAV based on gold prices and holdings
+                const goldPerformance = await this.goldService.calculateGoldPerformance(transactions, latestSnapshot);
+                if (goldPerformance) {
+                    currentNAV = goldPerformance.currentNAV;
+                    console.log('Calculated Gold NAV:', currentNAV);
+                } else {
+                    // Fallback to manually entered NAV if specialized calculation fails (e.g. missing prices)
+                    currentNAV = parseFloat(latestSnapshot.nav.toString()) || 0;
+                    console.log('Fallback Manual NAV for Gold:', currentNAV);
+                }
+            } else {
+                // Standard portfolio: use stored NAV
+                currentNAV = parseFloat(latestSnapshot.nav.toString()) || 0;
+            }
+        }
+        console.log('Final Current NAV:', currentNAV);
 
         const totalInvested = calculateTotalInvested(transactions);
         console.log('Total Invested:', totalInvested);
@@ -71,18 +99,10 @@ export class PortfolioService {
         // Calculate XIRR
         let xirr = 0;
         if (transactions.length > 0 && currentNAV > 0) {
-            console.log('Preparing cash flows...');
             const cashFlows = prepareXIRRCashFlows(transactions, currentNAV);
-            console.log('Cash flows prepared:', cashFlows.length);
             if (cashFlows.length >= 2) {
-                console.log('Calculating XIRR...');
                 xirr = calculateXIRR(cashFlows);
-                console.log('XIRR result:', xirr);
-            } else {
-                console.log('Not enough cash flows for XIRR');
             }
-        } else {
-            console.log('Skipping XIRR: transactions=', transactions.length, 'currentNAV=', currentNAV);
         }
 
         const result = {
@@ -91,7 +111,7 @@ export class PortfolioService {
             current_nav: currentNAV,
             profit,
             profit_percentage: Math.round(profitPercentage * 100) / 100,
-            xirr: Math.round(xirr * 100 * 100) / 100, // Convert to percentage and round to 2 decimal places
+            xirr: Math.round(xirr * 100 * 100) / 100,
         };
         console.log('Final result:', result);
         console.log('=== End Debug ===\n');

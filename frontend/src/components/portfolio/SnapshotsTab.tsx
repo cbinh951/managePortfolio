@@ -1,15 +1,17 @@
-import { Snapshot } from '@/types/models';
+import { Snapshot, AssetType } from '@/types/models';
 import Link from 'next/link';
 import { useSettings } from '@/contexts/SettingsContext';
-import { formatCurrency } from '@/utils/currencyUtils';
+import SnapshotHistoryTable from '../snapshots/SnapshotHistoryTable';
 
 interface SnapshotsTabProps {
     snapshots: Snapshot[];
     portfolioId: string;
     loading?: boolean;
+    onUpdate?: () => void;
+    assetType?: AssetType;
 }
 
-export default function SnapshotsTab({ snapshots, portfolioId, loading = false }: SnapshotsTabProps) {
+export default function SnapshotsTab({ snapshots, portfolioId, loading = false, onUpdate, assetType }: SnapshotsTabProps) {
     const { settings } = useSettings();
     if (loading) {
         return (
@@ -40,10 +42,7 @@ export default function SnapshotsTab({ snapshots, portfolioId, loading = false }
         );
     }
 
-    // Sort snapshots by date descending
-    const sortedSnapshots = [...snapshots].sort((a, b) =>
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+
 
     return (
         <div className="space-y-4">
@@ -62,59 +61,12 @@ export default function SnapshotsTab({ snapshots, portfolioId, loading = false }
                 </Link>
             </div>
 
-            {/* Table */}
-            <div className="bg-slate-800/50 border border-slate-700 rounded-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-slate-700">
-                                <th className="text-left py-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                    Date
-                                </th>
-                                <th className="text-right py-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                    NAV
-                                </th>
-                                <th className="text-right py-4 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                                    Change
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-700/50">
-                            {sortedSnapshots.map((snapshot, index) => {
-                                const prevSnapshot = sortedSnapshots[index + 1];
-                                const change = prevSnapshot
-                                    ? ((snapshot.nav - prevSnapshot.nav) / prevSnapshot.nav) * 100
-                                    : null;
-
-                                return (
-                                    <tr key={snapshot.snapshot_id} className="hover:bg-slate-700/30 transition-colors">
-                                        <td className="py-4 px-6 text-sm text-slate-300">
-                                            {new Date(snapshot.date).toLocaleDateString('en-US', {
-                                                year: 'numeric',
-                                                month: 'short',
-                                                day: 'numeric',
-                                            })}
-                                        </td>
-                                        <td className="py-4 px-6 text-sm font-semibold text-white text-right">
-                                            {formatCurrency(snapshot.nav, 'VND', settings.displayCurrency, settings.exchangeRate)}
-                                        </td>
-                                        <td className="py-4 px-6 text-sm text-right">
-                                            {change !== null ? (
-                                                <span className={`font-medium ${change >= 0 ? 'text-emerald-400' : 'text-red-400'
-                                                    }`}>
-                                                    {change >= 0 ? '+' : ''}{change.toFixed(2)}%
-                                                </span>
-                                            ) : (
-                                                <span className="text-slate-500">-</span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <SnapshotHistoryTable
+                snapshots={snapshots}
+                loading={loading}
+                onUpdate={onUpdate}
+                assetType={assetType}
+            />
         </div>
     );
 }

@@ -7,6 +7,11 @@ export enum AssetType {
     CASH = 'CASH',
 }
 
+export enum GoldType {
+    BRANDED = 'BRANDED',  // Vàng thương hiệu (SJC, PNJ, DOJI)
+    PRIVATE = 'PRIVATE',  // Vàng tư nhân (private gold)
+}
+
 export enum PlatformType {
     BROKER = 'BROKER',
     BANK = 'BANK',
@@ -31,7 +36,6 @@ export interface Asset {
 export interface Platform {
     platform_id: string;
     platform_name: string;
-    platform_type?: PlatformType; // Optional since removed from DB
     asset_id: string;
 }
 
@@ -65,13 +69,20 @@ export interface Transaction {
     portfolio_id?: string;
     cash_account_id?: string;
     description?: string;
+    // Gold-specific fields
+    gold_type?: GoldType;
+    quantity_chi?: number;  // Quantity in "chỉ" units (1 chỉ = 3.75g)
+    unit_price?: number;    // Price per chỉ (optional, for reference)
 }
 
 export interface Snapshot {
     snapshot_id: string;
     portfolio_id: string;
     date: string;
-    nav: number;
+    nav: number;  // Keep for backward compatibility
+    // Gold-specific fields
+    branded_gold_price?: number;  // Price per chỉ for branded gold
+    private_gold_price?: number;  // Price per chỉ for private gold
 }
 
 // Calculated types

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/services/api';
-import { Portfolio, Snapshot } from '@/types/models';
+import { Portfolio, Snapshot, AssetType } from '@/types/models';
 import MetricCard from '@/components/portfolio/MetricCard';
 import NAVChart from '@/components/snapshots/NAVChart';
 import AddSnapshotForm from '@/components/snapshots/AddSnapshotForm';
@@ -22,6 +22,7 @@ export default function SnapshotsPage({ params }: { params: Promise<{ id: string
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedPeriod, setSelectedPeriod] = useState('ALL');
+    const [assetType, setAssetType] = useState<AssetType | null>(null);
 
     useEffect(() => {
         loadData();
@@ -32,17 +33,24 @@ export default function SnapshotsPage({ params }: { params: Promise<{ id: string
             setLoading(true);
             setError(null);
 
-            const portfolioData = await apiClient.getPortfolio(id);
+            const [portfolioData, snapshotsData, assetsData] = await Promise.all([
+                apiClient.getPortfolio(id),
+                apiClient.getPortfolioSnapshots(id),
+                apiClient.getAssets()
+            ]);
 
             // Check if this is an investment portfolio (not cash)
             if (!portfolioData) {
                 throw new Error('Portfolio not found');
             }
 
-            const snapshotsData = await apiClient.getPortfolioSnapshots(id);
-
             setPortfolio(portfolioData);
             setSnapshots(snapshotsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+
+            // Determine asset type
+            const asset = assetsData.find(a => a.asset_id === portfolioData.asset_id);
+            setAssetType(asset?.asset_type || null);
+
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load data');
         } finally {
@@ -195,6 +203,7 @@ export default function SnapshotsPage({ params }: { params: Promise<{ id: string
                     <div>
                         <AddSnapshotForm
                             portfolioId={id}
+                            assetType={assetType || undefined}
                             onSuccess={handleSnapshotSuccess}
                         />
                     </div>

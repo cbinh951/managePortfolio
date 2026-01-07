@@ -69,7 +69,12 @@ export function createTransactionRoutes(csvService: CsvService): Router {
     // Create new transaction
     router.post('/', async (req: Request, res: Response) => {
         try {
-            const data: CreateTransactionRequest = req.body;
+            const data: CreateTransactionRequest & {
+                gold_type?: any;
+                quantity_chi?: number;
+                unit_price?: number;
+            } = req.body;
+
             const transaction: Transaction = {
                 transaction_id: csvService.generateId('T'),
                 date: data.date,
@@ -78,6 +83,9 @@ export function createTransactionRoutes(csvService: CsvService): Router {
                 portfolio_id: data.portfolio_id,
                 cash_account_id: data.cash_account_id,
                 description: data.description,
+                gold_type: data.gold_type,
+                quantity_chi: data.quantity_chi,
+                unit_price: data.unit_price,
             };
 
             await csvService.appendCsv('transactions.csv', transaction, [
@@ -88,6 +96,9 @@ export function createTransactionRoutes(csvService: CsvService): Router {
                 { id: 'portfolio_id', title: 'portfolio_id' },
                 { id: 'cash_account_id', title: 'cash_account_id' },
                 { id: 'description', title: 'description' },
+                { id: 'gold_type', title: 'gold_type' },
+                { id: 'quantity_chi', title: 'quantity_chi' },
+                { id: 'unit_price', title: 'unit_price' },
             ]);
 
             const response: ApiResponse<typeof transaction> = {
@@ -137,6 +148,9 @@ export function createTransactionRoutes(csvService: CsvService): Router {
                 { id: 'portfolio_id', title: 'portfolio_id' },
                 { id: 'cash_account_id', title: 'cash_account_id' },
                 { id: 'description', title: 'description' },
+                { id: 'gold_type', title: 'gold_type' },
+                { id: 'quantity_chi', title: 'quantity_chi' },
+                { id: 'unit_price', title: 'unit_price' },
             ]);
 
             const response: ApiResponse<typeof transactions[number]> = {
@@ -181,6 +195,9 @@ export function createTransactionRoutes(csvService: CsvService): Router {
                 { id: 'portfolio_id', title: 'portfolio_id' },
                 { id: 'cash_account_id', title: 'cash_account_id' },
                 { id: 'description', title: 'description' },
+                { id: 'gold_type', title: 'gold_type' },
+                { id: 'quantity_chi', title: 'quantity_chi' },
+                { id: 'unit_price', title: 'unit_price' },
             ]);
 
             const response: ApiResponse<{ message: string }> = {

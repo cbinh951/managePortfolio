@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiClient } from '@/services/api';
 import { useSettings } from '@/contexts/SettingsContext';
 
@@ -25,8 +25,12 @@ export default function AddTransactionModal({
         type: 'DEPOSIT',
         amount: '',
         description: '',
+        gold_type: 'BRANDED',
+        quantity_chi: '',
+        unit_price: '',
     });
     const [displayAmount, setDisplayAmount] = useState('');
+    const [isGoldPortfolio, setIsGoldPortfolio] = useState(false);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -53,6 +57,48 @@ export default function AddTransactionModal({
         }
     };
 
+
+
+    // Calculate unit price when quantity changes
+    const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { value } = e.target;
+        setFormData(prev => {
+            const newState = { ...prev, quantity_chi: value };
+
+            // Recalculate unit price if amount exists
+            if (value && parseFloat(value) > 0 && prev.amount) {
+                const unitPrice = parseFloat(prev.amount) / parseFloat(value);
+                newState.unit_price = unitPrice.toFixed(0);
+            }
+            return newState;
+        });
+    };
+
+    // Detect if portfolio is Gold type
+    useEffect(() => {
+        const checkPortfolioType = async () => {
+            if (!portfolioId) return;
+            try {
+                const [portfolio, assets] = await Promise.all([
+                    apiClient.getPortfolio(portfolioId),
+                    apiClient.getAssets()
+                ]);
+                const asset = assets.find(a => a.asset_id === portfolio.asset_id);
+                if (asset && asset.asset_type === 'GOLD') {
+                    setIsGoldPortfolio(true);
+                } else {
+                    setIsGoldPortfolio(false);
+                }
+            } catch (err) {
+                console.error('Failed to fetch portfolio details:', err);
+            }
+        };
+
+        if (isOpen) {
+            checkPortfolioType();
+        }
+    }, [isOpen, portfolioId]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -76,7 +122,12 @@ export default function AddTransactionModal({
                 amount: parseFloat(formData.amount),
                 portfolio_id: portfolioId || undefined,
                 cash_account_id: cashAccountId || undefined,
-                description: formData.description || undefined,
+                description: formData.description,
+                ...(isGoldPortfolio ? {
+                    gold_type: formData.gold_type,
+                    quantity_chi: formData.quantity_chi ? parseFloat(formData.quantity_chi) : undefined,
+                    unit_price: formData.unit_price ? parseFloat(formData.unit_price) : undefined
+                } : {})
             });
 
             // Reset form
@@ -85,6 +136,9 @@ export default function AddTransactionModal({
                 type: 'DEPOSIT',
                 amount: '',
                 description: '',
+                gold_type: 'BRANDED',
+                quantity_chi: '',
+                unit_price: '',
             });
             setDisplayAmount('');
 
@@ -103,6 +157,9 @@ export default function AddTransactionModal({
             type: 'DEPOSIT',
             amount: '',
             description: '',
+            gold_type: 'BRANDED',
+            quantity_chi: '',
+            unit_price: '',
         });
         setDisplayAmount('');
         setError(null);
@@ -143,6 +200,16 @@ export default function AddTransactionModal({
                         </div>
                     )}
 
+                    {/* Gold Type Warning/Badge */}
+                    {isGoldPortfolio && (
+                        <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            Gold Transaction
+                        </div>
+                    )}
+
                     {/* Date & Type */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -173,14 +240,54 @@ export default function AddTransactionModal({
                                 disabled={loading}
                             >
                                 <option value="DEPOSIT">Deposit</option>
-                                <option value="WITHDRAWAL">Withdrawal</option>
-                                <option value="TRANSFER">Transfer</option>
+                                <option value="WITHDRAW">Withdrawal</option>
+                                {!isGoldPortfolio && <option value="TRANSFER">Transfer</option>}
                                 <option value="BUY">Buy</option>
                                 <option value="SELL">Sell</option>
-                                <option value="DIVIDEND">Dividend</option>
+                                {!isGoldPortfolio && <option value="DIVIDEND">Dividend</option>}
                             </select>
                         </div>
                     </div>
+
+                    {/* Gold Specific Fields */}
+                    {isGoldPortfolio && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="gold_type" className="block text-sm font-medium text-slate-300 mb-2">
+                                    Gold Type <span className="text-red-400">*</span>
+                                </label>
+                                <select
+                                    id="gold_type"
+                                    name="gold_type"
+                                    value={formData.gold_type}
+                                    onChange={handleChange}
+                                    className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    disabled={loading}
+                                >
+                                    <option value="BRANDED">Branded (SJC/PNJ)</option>
+                                    <option value="PRIVATE">Private Gold</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label htmlFor="quantity_chi" className="block text-sm font-medium text-slate-300 mb-2">
+                                    Quantity (Chỉ) <span className="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="number"
+                                    id="quantity_chi"
+                                    name="quantity_chi"
+                                    value={formData.quantity_chi}
+                                    onChange={handleQuantityChange}
+                                    placeholder="0.0"
+                                    step="0.1"
+                                    min="0"
+                                    className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    disabled={loading}
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Amount */}
                     <div>

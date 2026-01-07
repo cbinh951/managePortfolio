@@ -224,7 +224,12 @@ class ApiClient {
         return response.data.data;
     }
 
-    async updateSnapshot(id: string, data: { date?: string; nav?: number }): Promise<Snapshot> {
+    async updateSnapshot(id: string, data: {
+        date?: string;
+        nav?: number;
+        branded_gold_price?: number;
+        private_gold_price?: number;
+    }): Promise<Snapshot> {
         const response = await this.client.put<ApiResponse<Snapshot>>(`/snapshots/${id}`, data);
         if (!response.data.success || !response.data.data) {
             throw new Error(response.data.error || 'Failed to update snapshot');
@@ -287,7 +292,7 @@ class ApiClient {
         }
     }
 
-    async createPlatform(data: { platform_name: string; platform_type?: string; asset_id: string }): Promise<Platform> {
+    async createPlatform(data: { platform_name: string; asset_id: string }): Promise<Platform> {
         const response = await this.client.post<ApiResponse<Platform>>('/master/platforms', data);
         if (!response.data.success || !response.data.data) {
             throw new Error(response.data.error || 'Failed to create platform');
@@ -295,7 +300,7 @@ class ApiClient {
         return response.data.data;
     }
 
-    async updatePlatform(id: string, data: { platform_name?: string; platform_type?: string; asset_id?: string }): Promise<Platform> {
+    async updatePlatform(id: string, data: { platform_name?: string; asset_id?: string }): Promise<Platform> {
         const response = await this.client.put<ApiResponse<Platform>>(`/master/platforms/${id}`, data);
         if (!response.data.success || !response.data.data) {
             throw new Error(response.data.error || 'Failed to update platform');
