@@ -13,7 +13,6 @@ import KPICard from '@/components/common/KPICard';
 interface CashAccountWithBalance extends CashAccount {
     balance: number;
     platform_name: string;
-    platform_type: string;
 }
 
 // Icon components
@@ -70,7 +69,6 @@ export default function CashAccountsPage() {
                     ...account,
                     balance,
                     platform_name: platform?.platform_name || 'Unknown',
-                    platform_type: platform?.platform_type || 'OTHER',
                 };
             });
 
@@ -92,8 +90,8 @@ export default function CashAccountsPage() {
 
     // Calculate totals
     const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
-    const bankAccounts = accounts.filter(a => a.platform_type === 'BANK').length;
-    const walletAccounts = accounts.filter(a => a.platform_type === 'WALLET').length;
+    const bankAccounts = accounts.filter(a => a.platform_name.toLowerCase().includes('bank')).length;
+    const walletAccounts = accounts.filter(a => a.platform_name.toLowerCase().includes('wallet')).length;
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8">

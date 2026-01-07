@@ -9,7 +9,6 @@ import { formatCurrency } from '@/utils/currencyUtils';
 interface CashAccountWithBalance extends CashAccount {
     balance: number;
     platform_name: string;
-    platform_type: string;
 }
 
 interface CashAccountTableProps {
@@ -39,44 +38,44 @@ export default function CashAccountTable({ accounts }: CashAccountTableProps) {
         return formatCurrency(total, 'VND', settings.displayCurrency, settings.exchangeRate);
     }, [filteredAccounts, settings.displayCurrency, settings.exchangeRate]);
 
-    // Get platform icon
-    const getPlatformIcon = (platformType: string) => {
-        switch (platformType) {
-            case 'BANK':
-                return (
-                    <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
-                        </svg>
-                    </div>
-                );
-            case 'WALLET':
-                return (
-                    <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
-                    </div>
-                );
-            default:
-                return (
-                    <div className="w-10 h-10 rounded-lg bg-slate-700/50 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                    </div>
-                );
+    // Get platform icon based on platform name
+    const getPlatformIcon = (platformName: string) => {
+        const nameLower = platformName.toLowerCase();
+        if (nameLower.includes('bank')) {
+            return (
+                <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                    </svg>
+                </div>
+            );
+        } else if (nameLower.includes('wallet')) {
+            return (
+                <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                </div>
+            );
         }
+        return (
+            <div className="w-10 h-10 rounded-lg bg-slate-700/50 flex items-center justify-center">
+                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+            </div>
+        );
     };
 
-    // Get platform type badge color
-    const getPlatformBadge = (type: string) => {
-        if (type === 'BANK') {
-            return 'bg-green-500/10 text-green-400 border-green-500/20';
-        } else if (type === 'WALLET') {
-            return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+    // Get platform type badge color based on platform name
+    const getPlatformBadge = (platformName: string) => {
+        const nameLower = platformName.toLowerCase();
+        if (nameLower.includes('bank')) {
+            return { color: 'bg-green-500/10 text-green-400 border-green-500/20', label: 'Bank' };
+        } else if (nameLower.includes('wallet')) {
+            return { color: 'bg-purple-500/10 text-purple-400 border-purple-500/20', label: 'Wallet' };
         }
-        return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+        return { color: 'bg-slate-500/10 text-slate-400 border-slate-500/20', label: 'Other' };
     };
 
     return (
@@ -137,7 +136,7 @@ export default function CashAccountTable({ accounts }: CashAccountTableProps) {
                             >
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center gap-3">
-                                        {getPlatformIcon(account.platform_type)}
+                                        {getPlatformIcon(account.platform_name)}
                                         <div>
                                             <div className="text-sm font-medium text-white">
                                                 {account.name}
@@ -151,8 +150,8 @@ export default function CashAccountTable({ accounts }: CashAccountTableProps) {
                                 <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex flex-col gap-1">
                                         <span className="text-sm text-slate-300">{account.platform_name}</span>
-                                        <span className={`px-2 py-0.5 rounded-md border text-xs font-medium w-fit ${getPlatformBadge(account.platform_type)}`}>
-                                            {account.platform_type}
+                                        <span className={`px-2 py-0.5 rounded-md border text-xs font-medium w-fit ${getPlatformBadge(account.platform_name).color}`}>
+                                            {getPlatformBadge(account.platform_name).label}
                                         </span>
                                     </div>
                                 </td>
