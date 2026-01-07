@@ -210,7 +210,7 @@ export default function SnapshotsPage({ params }: { params: Promise<{ id: string
                 </div>
 
                 {/* Snapshot History Table */}
-                <SnapshotHistoryTable snapshots={snapshots} onUpdate={loadData} />
+                <SnapshotHistoryTable snapshots={snapshots} onUpdate={loadData} assetType={assetType || undefined} />
 
                 {/* Performance Insight */}
                 {snapshots.length > 0 && ytdGrowth > 0 && (

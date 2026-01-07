@@ -649,6 +649,12 @@ export class SupabaseService {
         const transactions = await this.getTransactionsByPortfolio(portfolio_id);
         const snapshots = await this.getSnapshotsByPortfolio(portfolio_id);
 
+        // Fetch asset information to check if this is a gold portfolio
+        const asset = await this.getAllAssets().then(assets =>
+            assets.find(a => a.asset_id === portfolio.asset_id)
+        );
+        const isGoldPortfolio = asset?.asset_name === 'Vang' || asset?.asset_type === 'GOLD';
+
         // Calculate total invested (deposits - withdrawals)
         const totalInvested = transactions.reduce((sum, t) => {
             if (t.type === TransactionType.DEPOSIT ||
@@ -662,9 +668,39 @@ export class SupabaseService {
             return sum;
         }, 0);
 
-        // Get latest NAV from snapshots
+        // Get latest snapshot
         const latestSnapshot = snapshots[0];
-        const currentNav = latestSnapshot ? latestSnapshot.nav : 0;
+        let currentNav = 0;
+
+        if (isGoldPortfolio && latestSnapshot) {
+            // For gold portfolios, calculate NAV from holdings and prices
+            // Calculate gold holdings from transactions
+            let brandedHoldings = 0;
+            let privateHoldings = 0;
+
+            transactions.forEach(t => {
+                if (!t.quantity_chi) return;
+                const qty = Number(t.quantity_chi);
+                const isAddition = t.type === TransactionType.BUY || t.type === TransactionType.DEPOSIT;
+                const isSubtraction = t.type === TransactionType.SELL || t.type === TransactionType.WITHDRAW;
+
+                if (t.gold_type === 'BRANDED') {
+                    if (isAddition) brandedHoldings += qty;
+                    if (isSubtraction) brandedHoldings -= qty;
+                } else if (t.gold_type === 'PRIVATE') {
+                    if (isAddition) privateHoldings += qty;
+                    if (isSubtraction) privateHoldings -= qty;
+                }
+            });
+
+            // Calculate NAV from holdings and latest prices
+            const brandedPrice = latestSnapshot.branded_gold_price || 0;
+            const privatePrice = latestSnapshot.private_gold_price || 0;
+            currentNav = (brandedHoldings * brandedPrice) + (privateHoldings * privatePrice);
+        } else {
+            // For non-gold portfolios, use NAV from snapshot
+            currentNav = latestSnapshot ? latestSnapshot.nav : 0;
+        }
 
         // Calculate profit
         const profit = currentNav - totalInvested;

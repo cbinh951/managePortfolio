@@ -65,13 +65,10 @@ export default function AddSnapshotForm({ portfolioId, assetType, onSuccess }: A
             return 'Snapshot date cannot be in the future';
         }
 
-        if (!formData.nav || parseFloat(formData.nav) < 0) {
-            // Allow 0 if gold prices are provided? 
-            // For now, let's always require NAV to be safe, or allow 0 if user wants.
-            // Requirement: "Input quantity... Record total amount."
-            // If I enforce > 0, user must calculate it.
-            // If I allow >= 0, user can put 0.
-            if (!formData.nav) return 'Total NAV is required (enter 0 if relying on system calc)';
+        // For gold portfolios, NAV is optional (will be auto-calculated)
+        // For other portfolios, NAV is required
+        if (!isGold && (!formData.nav || parseFloat(formData.nav) < 0)) {
+            return 'Total NAV is required';
         }
 
         return null;
@@ -196,29 +193,29 @@ export default function AddSnapshotForm({ portfolioId, assetType, onSuccess }: A
                     </div>
                 )}
 
-                <div>
-                    <label htmlFor="nav" className="block text-sm font-medium text-slate-300 mb-2">
-                        Total Net Asset Value <span className="text-red-400">*</span>
-                    </label>
-                    <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
-                        <input
-                            type="text"
-                            id="nav"
-                            name="nav"
-                            value={displayNav}
-                            onChange={(e) => handleNumberChange(e, 'nav', setDisplayNav)}
-                            placeholder="0"
-                            className="w-full pl-8 pr-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            disabled={loading}
-                        />
+                {!isGold && (
+                    <div>
+                        <label htmlFor="nav" className="block text-sm font-medium text-slate-300 mb-2">
+                            Total Net Asset Value <span className="text-red-400">*</span>
+                        </label>
+                        <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
+                            <input
+                                type="text"
+                                id="nav"
+                                name="nav"
+                                value={displayNav}
+                                onChange={(e) => handleNumberChange(e, 'nav', setDisplayNav)}
+                                placeholder="0"
+                                className="w-full pl-8 pr-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                disabled={loading}
+                            />
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">
+                            Enter total value of all positions in this portfolio
+                        </p>
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                        {isGold
-                            ? "Enter total portfolio value manually, or leave as 0 if relying on auto-calc (check logic)"
-                            : "Enter total value of all positions in this portfolio"}
-                    </p>
-                </div>
+                )}
 
                 <button
                     type="submit"

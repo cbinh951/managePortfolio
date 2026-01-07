@@ -1,16 +1,18 @@
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatCurrency } from '@/utils/currencyUtils';
-import { Snapshot, Transaction } from '@/types/models';
+import { Snapshot, Transaction, AssetType, GoldType } from '@/types/models';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 interface OverviewTabProps {
     portfolioName: string;
     snapshots?: Snapshot[];
     transactions?: Transaction[];
+    currentNAV?: number;
+    assetType?: AssetType;
     loading?: boolean;
 }
 
-export default function OverviewTab({ portfolioName, snapshots = [], transactions = [], loading = false }: OverviewTabProps) {
+export default function OverviewTab({ portfolioName, snapshots = [], transactions = [], currentNAV, assetType, loading = false }: OverviewTabProps) {
     const { settings } = useSettings();
 
     if (loading) {
@@ -29,15 +31,52 @@ export default function OverviewTab({ portfolioName, snapshots = [], transaction
             .reduce((sum, t) => sum + Math.abs(t.amount), 0);
     };
 
+    // Calculate gold holdings at a specific date
+    const calculateGoldHoldingsAtDate = (date: string) => {
+        let branded = 0;
+        let privateGold = 0;
+
+        transactions
+            .filter(t => new Date(t.date) <= new Date(date))
+            .forEach(t => {
+                if (!t.quantity_chi || !t.gold_type) return;
+                const qty = Number(t.quantity_chi);
+                const isAddition = t.type === 'BUY' || t.type === 'DEPOSIT';
+                const isSubtraction = t.type === 'SELL' || t.type === 'WITHDRAW';
+
+                if (t.gold_type === GoldType.BRANDED) {
+                    if (isAddition) branded += qty;
+                    if (isSubtraction) branded -= qty;
+                } else if (t.gold_type === GoldType.PRIVATE) {
+                    if (isAddition) privateGold += qty;
+                    if (isSubtraction) privateGold -= qty;
+                }
+            });
+
+        return { branded, privateGold };
+    };
+
     // Prepare chart data from snapshots
     const chartData = [...snapshots]
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-        .map(snapshot => ({
-            date: new Date(snapshot.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            fullDate: snapshot.date,
-            value: snapshot.nav,
-            invested: calculateInvestedAtDate(snapshot.date),
-        }));
+        .map(snapshot => {
+            let navValue = snapshot.nav; // Default for non-Gold portfolios
+
+            if (assetType === AssetType.GOLD && (snapshot.branded_gold_price || snapshot.private_gold_price)) {
+                // Calculate NAV from gold holdings × prices
+                const { branded, privateGold } = calculateGoldHoldingsAtDate(snapshot.date);
+                const brandedValue = branded * (snapshot.branded_gold_price || 0);
+                const privateValue = privateGold * (snapshot.private_gold_price || 0);
+                navValue = brandedValue + privateValue;
+            }
+
+            return {
+                date: new Date(snapshot.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                fullDate: snapshot.date,
+                value: navValue,
+                invested: calculateInvestedAtDate(snapshot.date),
+            };
+        });
 
     // Custom tooltip for the chart
     interface TooltipPayload {
@@ -260,25 +299,41 @@ export default function OverviewTab({ portfolioName, snapshots = [], transaction
                         )[0];
 
                         const totalInvested = calculateInvestedAtDate(latestSnapshot.date);
-                        const currentValue = latestSnapshot.nav;
+                        // Use currentNAV prop if available (from performance API), otherwise fall back to snapshot NAV
+                        const currentValue = currentNAV !== undefined ? currentNAV : latestSnapshot.nav;
                         const profit = currentValue - totalInvested;
-                        const profitPercent = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
 
-                        const investedPercent = totalInvested > 0 ? (totalInvested / currentValue) * 100 : 0;
-                        const profitPercentOfTotal = totalInvested > 0 ? (profit / currentValue) * 100 : 0;
+                        // Handle edge cases for percentage calculations
+                        let profitPercent: number | null = null;
+                        let investedPercent = 0;
+                        let profitPercentOfTotal = 0;
+
+                        if (totalInvested > 0) {
+                            // Normal case: has investments
+                            profitPercent = (profit / totalInvested) * 100;
+                            investedPercent = (totalInvested / currentValue) * 100;
+                            profitPercentOfTotal = (profit / currentValue) * 100;
+                        } else if (currentValue > 0) {
+                            // Edge case: no investments but has value (e.g., Gold portfolio with only holdings)
+                            profitPercent = null; // Will display as "N/A"
+                            investedPercent = 0;
+                            profitPercentOfTotal = 100;
+                        }
 
                         return (
                             <div className="space-y-4">
                                 {/* Visual Bar */}
                                 <div className="h-8 bg-slate-900/50 rounded-lg overflow-hidden flex">
-                                    <div
-                                        className="bg-amber-500 flex items-center justify-center text-xs font-semibold text-white"
-                                        style={{ width: `${Math.max(investedPercent, 5)}%` }}
-                                        title={`Invested: ${investedPercent.toFixed(1)}%`}
-                                    >
-                                        {investedPercent > 15 && `${investedPercent.toFixed(0)}%`}
-                                    </div>
-                                    {profit > 0 && (
+                                    {investedPercent > 0 && (
+                                        <div
+                                            className="bg-amber-500 flex items-center justify-center text-xs font-semibold text-white"
+                                            style={{ width: `${Math.max(investedPercent, 5)}%` }}
+                                            title={`Invested: ${investedPercent.toFixed(1)}%`}
+                                        >
+                                            {investedPercent > 15 && `${investedPercent.toFixed(0)}%`}
+                                        </div>
+                                    )}
+                                    {profit > 0 && profitPercentOfTotal > 0 && (
                                         <div
                                             className="bg-emerald-500 flex items-center justify-center text-xs font-semibold text-white"
                                             style={{ width: `${Math.max(profitPercentOfTotal, 5)}%` }}
@@ -316,7 +371,9 @@ export default function OverviewTab({ portfolioName, snapshots = [], transaction
                                         </div>
                                         <span className={`text-sm font-semibold ${profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                                             {profit >= 0 ? '+' : ''}{formatCurrency(profit, 'VND', settings.displayCurrency, settings.exchangeRate)}
-                                            <span className="text-xs ml-1">({profitPercent >= 0 ? '+' : ''}{profitPercent.toFixed(1)}%)</span>
+                                            <span className="text-xs ml-1">
+                                                ({profitPercent !== null ? `${profitPercent >= 0 ? '+' : ''}${profitPercent.toFixed(1)}%` : 'N/A'})
+                                            </span>
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between pt-2 border-t border-slate-700">

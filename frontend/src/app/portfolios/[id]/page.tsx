@@ -399,6 +399,8 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                             portfolioName={data.name}
                             snapshots={data.snapshots}
                             transactions={data.transactions}
+                            currentNAV={currentBalance}
+                            assetType={data.asset?.asset_type}
                         />
                     )}
                     {activeTab === 'transactions' && (

@@ -221,24 +221,26 @@ export default function EditSnapshotModal({
                         </div>
                     )}
 
-                    <div>
-                        <label htmlFor="edit-nav" className="block text-sm font-medium text-slate-300 mb-2">
-                            Net Asset Value <span className="text-red-400">*</span>
-                        </label>
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
-                            <input
-                                type="text"
-                                id="edit-nav"
-                                name="nav"
-                                value={displayNav}
-                                onChange={(e) => handleNumberChange(e, 'nav', setDisplayNav)}
-                                placeholder="0"
-                                className="w-full pl-8 pr-4 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                disabled={loading}
-                            />
+                    {!isGold && (
+                        <div>
+                            <label htmlFor="edit-nav" className="block text-sm font-medium text-slate-300 mb-2">
+                                Net Asset Value <span className="text-red-400">*</span>
+                            </label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">{currencySymbol}</span>
+                                <input
+                                    type="text"
+                                    id="edit-nav"
+                                    name="nav"
+                                    value={displayNav}
+                                    onChange={(e) => handleNumberChange(e, 'nav', setDisplayNav)}
+                                    placeholder="0"
+                                    className="w-full pl-8 pr-4 py-2.5 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    disabled={loading}
+                                />
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </form>
 
                 {/* Footer */}

@@ -170,19 +170,21 @@ export default function SnapshotHistoryTable({ snapshots, loading = false, onUpd
                                         </th>
                                     </>
                                 )}
-                                <th
-                                    onClick={() => handleSort('nav')}
-                                    className="text-right py-3 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors select-none"
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        <span>NAV</span>
-                                        {sortColumn === 'nav' && (
-                                            <svg className={`w-3 h-3 transition-transform ${sortDirection === 'asc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                            </svg>
-                                        )}
-                                    </div>
-                                </th>
+                                {assetType !== AssetType.GOLD && (
+                                    <th
+                                        onClick={() => handleSort('nav')}
+                                        className="text-right py-3 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors select-none"
+                                    >
+                                        <div className="flex items-center justify-end gap-2">
+                                            <span>NAV</span>
+                                            {sortColumn === 'nav' && (
+                                                <svg className={`w-3 h-3 transition-transform ${sortDirection === 'asc' ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                    </th>
+                                )}
                                 <th
                                     onClick={() => handleSort('change')}
                                     className="text-right py-3 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-300 transition-colors select-none"
@@ -234,9 +236,11 @@ export default function SnapshotHistoryTable({ snapshots, loading = false, onUpd
                                                 </td>
                                             </>
                                         )}
-                                        <td className="py-3 px-6 text-sm font-semibold text-white text-right">
-                                            {formatCurrency(snapshot.nav, 'VND', settings.displayCurrency, settings.exchangeRate)}
-                                        </td>
+                                        {assetType !== AssetType.GOLD && (
+                                            <td className="py-3 px-6 text-sm font-semibold text-white text-right">
+                                                {formatCurrency(snapshot.nav, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                            </td>
+                                        )}
                                         <td className="py-3 px-6 text-sm text-right">
                                             {change !== null ? (
                                                 <span className={`font-medium ${change >= 0 ? 'text-emerald-400' : 'text-red-400'
