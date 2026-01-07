@@ -9,6 +9,7 @@ interface CreatePlatformModalProps {
     onClose: () => void;
     onSuccess: (platform: Platform) => void;
     onCreate: (data: { platform_name: string; asset_id: string }) => Promise<Platform>;
+    preSelectedAssetId?: string;
 }
 
 export default function CreatePlatformModal({
@@ -16,6 +17,7 @@ export default function CreatePlatformModal({
     onClose,
     onSuccess,
     onCreate,
+    preSelectedAssetId,
 }: CreatePlatformModalProps) {
     const [platformName, setPlatformName] = useState('');
     // const [platformType, setPlatformType] = useState('BROKER'); // Removed
@@ -34,7 +36,9 @@ export default function CreatePlatformModal({
         try {
             const data = await apiClient.getAssets();
             setAssets(data);
-            if (data.length > 0 && !assetId) {
+            if (preSelectedAssetId) {
+                setAssetId(preSelectedAssetId);
+            } else if (data.length > 0 && !assetId) {
                 setAssetId(data[0].asset_id);
             }
         } catch (err) {
