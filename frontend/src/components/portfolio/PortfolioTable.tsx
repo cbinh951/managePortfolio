@@ -69,6 +69,19 @@ export default function PortfolioTable({ data }: PortfolioTableProps) {
             ),
         },
         {
+            accessorKey: 'withdrawn',
+            header: 'Withdrawn',
+            cell: ({ row }) => (
+                row.original.assetType === 'CASH' ? (
+                    <span className="text-slate-500">—</span>
+                ) : (
+                    <span className="font-medium text-purple-400">
+                        {formatCurrency(row.original.withdrawn, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                    </span>
+                )
+            ),
+        },
+        {
             accessorKey: 'profit',
             header: 'Profit/Loss',
             cell: ({ row }) => {

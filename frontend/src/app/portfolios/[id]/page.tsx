@@ -243,6 +243,8 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
 
     const currentBalance = isPortfolio ? data!.performance?.current_nav || 0 : data!.cashBalance?.balance || 0;
     const totalInvested = isPortfolio ? data!.performance?.total_invested || 0 : 0;
+    const totalWithdrawn = isPortfolio ? data!.performance?.total_withdrawn || 0 : 0;
+    const totalEquity = isPortfolio ? data!.performance?.total_equity || 0 : 0;
     const profit = isPortfolio ? data!.performance?.profit || 0 : 0;
     const profitPercentage = isPortfolio ? data!.performance?.profit_percentage || 0 : 0;
     const xirr = isPortfolio ? data!.performance?.xirr || null : null;
@@ -313,75 +315,91 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                 </div>
 
                 {/* Summary Metrics */}
-                <div className={`grid grid-cols-1 ${isPortfolio ? (goldHoldings ? 'md:grid-cols-3' : 'md:grid-cols-4') : 'md:grid-cols-3'} gap-6 mb-8`}>
-                    <MetricCard
-                        label={isPortfolio ? 'CURRENT NAV' : 'CURRENT BALANCE'}
-                        value={formatCurrency(currentBalance, 'VND', settings.displayCurrency, settings.exchangeRate)}
-                        valueColor="text-white"
-                    />
+                <div className={`grid grid-cols-1 ${isPortfolio ? (goldHoldings ? 'md:grid-cols-3 lg:grid-cols-4' : 'md:grid-cols-3 lg:grid-cols-4') : 'md:grid-cols-3'} gap-6 mb-8`}>
                     {isPortfolio && (
-                        <MetricCard
-                            label="TOTAL INVESTED"
-                            value={formatCurrency(totalInvested, 'VND', settings.displayCurrency, settings.exchangeRate)}
-                            valueColor="text-slate-300"
-                        />
-                    )}
-                    {!isPortfolio && (
-                        <MetricCard
-                            label="TOTAL WITHDRAW"
-                            value={formatCurrency(
-                                data.transactions
-                                    .filter(t => t.type === 'WITHDRAW')
-                                    .reduce((sum, t) => sum + Math.abs(parseFloat(String(t.amount))), 0),
-                                'VND',
-                                settings.displayCurrency,
-                                settings.exchangeRate
-                            )}
-                            valueColor="text-red-400"
-                        />
-                    )}
-                    {!isPortfolio && (
-                        <MetricCard
-                            label="TOTAL TRANSFER"
-                            value={formatCurrency(
-                                data.transactions
-                                    .filter(t => t.type === 'TRANSFER')
-                                    .reduce((sum, t) => sum + Math.abs(parseFloat(String(t.amount))), 0) / 2, // Divide by 2 because each transfer has 2 records
-                                'VND',
-                                settings.displayCurrency,
-                                settings.exchangeRate
-                            )}
-                            valueColor="text-purple-400"
-                        />
-                    )}
-                    {isPortfolio && (
-                        <MetricCard
-                            label="TOTAL PROFIT"
-                            value={formatCurrency(profit, 'VND', settings.displayCurrency, settings.exchangeRate)}
-                            change={profitPercentage}
-                            trend={profit >= 0 ? 'up' : 'down'}
-                            valueColor={profit >= 0 ? 'text-emerald-400' : 'text-red-400'}
-                        />
-                    )}
-                    {isPortfolio && xirr !== null && (
-                        <MetricCard
-                            label="XIRR"
-                            value={`${formatXIRR(xirr)}%`}
-                            trend={xirr >= 0 ? 'up' : 'down'}
-                            valueColor={xirr >= 0 ? 'text-emerald-400' : 'text-red-400'}
-                        />
-                    )}
-                    {goldHoldings && (
                         <>
                             <MetricCard
-                                label="BRANDED GOLD HOLDINGS"
-                                value={`${goldHoldings.branded.toLocaleString()} chỉ`}
-                                valueColor="text-yellow-500"
+                                label="TOTAL EQUITY"
+                                value={formatCurrency(totalEquity, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                valueColor="text-blue-400"
+                                subtitle="NAV + Withdrawn"
                             />
                             <MetricCard
-                                label="PRIVATE GOLD HOLDINGS"
-                                value={`${goldHoldings.privateGold.toLocaleString()} chỉ`}
-                                valueColor="text-yellow-600"
+                                label="CURRENT NAV"
+                                value={formatCurrency(currentBalance, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                valueColor="text-white"
+                            />
+                            <MetricCard
+                                label="TOTAL INVESTED"
+                                value={formatCurrency(totalInvested, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                valueColor="text-slate-300"
+                            />
+                            <MetricCard
+                                label="TOTAL WITHDRAWN"
+                                value={formatCurrency(totalWithdrawn, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                valueColor="text-purple-400"
+                            />
+                            <MetricCard
+                                label="TOTAL PROFIT"
+                                value={formatCurrency(profit, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                change={profitPercentage}
+                                trend={profit >= 0 ? 'up' : 'down'}
+                                valueColor={profit >= 0 ? 'text-emerald-400' : 'text-red-400'}
+                            />
+                            {xirr !== null && (
+                                <MetricCard
+                                    label="XIRR"
+                                    value={`${formatXIRR(xirr)}%`}
+                                    trend={xirr >= 0 ? 'up' : 'down'}
+                                    valueColor={xirr >= 0 ? 'text-emerald-400' : 'text-red-400'}
+                                />
+                            )}
+                            {goldHoldings && (
+                                <>
+                                    <MetricCard
+                                        label="BRANDED GOLD HOLDINGS"
+                                        value={`${goldHoldings.branded.toLocaleString()} chỉ`}
+                                        valueColor="text-yellow-500"
+                                    />
+                                    <MetricCard
+                                        label="PRIVATE GOLD HOLDINGS"
+                                        value={`${goldHoldings.privateGold.toLocaleString()} chỉ`}
+                                        valueColor="text-yellow-600"
+                                    />
+                                </>
+                            )}
+                        </>
+                    )}
+                    {!isPortfolio && (
+                        <>
+                            <MetricCard
+                                label="CURRENT BALANCE"
+                                value={formatCurrency(currentBalance, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                valueColor="text-white"
+                            />
+                            <MetricCard
+                                label="TOTAL WITHDRAW"
+                                value={formatCurrency(
+                                    data.transactions
+                                        .filter(t => t.type === 'WITHDRAW')
+                                        .reduce((sum, t) => sum + Math.abs(parseFloat(String(t.amount))), 0),
+                                    'VND',
+                                    settings.displayCurrency,
+                                    settings.exchangeRate
+                                )}
+                                valueColor="text-red-400"
+                            />
+                            <MetricCard
+                                label="TOTAL TRANSFER"
+                                value={formatCurrency(
+                                    data.transactions
+                                        .filter(t => t.type === 'TRANSFER')
+                                        .reduce((sum, t) => sum + Math.abs(parseFloat(String(t.amount))), 0) / 2, // Divide by 2 because each transfer has 2 records
+                                    'VND',
+                                    settings.displayCurrency,
+                                    settings.exchangeRate
+                                )}
+                                valueColor="text-purple-400"
                             />
                         </>
                     )}
@@ -425,6 +443,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                             xirr={xirr}
                             totalReturn={profitPercentage}
                             snapshots={data.snapshots}
+                            transactions={data.transactions}
                         />
                     )}
                 </div>

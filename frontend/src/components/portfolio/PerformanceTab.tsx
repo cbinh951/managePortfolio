@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Snapshot } from '@/types/models';
+import { Snapshot, Transaction } from '@/types/models';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts';
@@ -11,12 +11,13 @@ interface PerformanceTabProps {
     xirr: number | null;
     totalReturn: number;
     snapshots?: Snapshot[];
+    transactions?: Transaction[];
     loading?: boolean;
 }
 
 type TimeRange = '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL';
 
-export default function PerformanceTab({ xirr, totalReturn, snapshots = [], loading = false }: PerformanceTabProps) {
+export default function PerformanceTab({ xirr, totalReturn, snapshots = [], transactions = [], loading = false }: PerformanceTabProps) {
     const [timeRange, setTimeRange] = useState<TimeRange>('ALL');
 
     const sortedSnapshots = useMemo(() => {
@@ -64,17 +65,56 @@ export default function PerformanceTab({ xirr, totalReturn, snapshots = [], load
 
         const filtered = sortedSnapshots.filter(s => new Date(s.date) >= startDate);
 
+        // Calculate cumulative withdrawn amount for each snapshot date
+        const withdrawalMap = new Map<string, number>();
+        let cumulativeWithdrawn = 0;
+
+        // Build sorted withdrawal timeline
+        transactions
+            .filter(t => t.type === 'WITHDRAW')
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+            .forEach(t => {
+                cumulativeWithdrawn += Math.abs(t.amount);
+                withdrawalMap.set(t.date, cumulativeWithdrawn);
+            });
+
         // Normalize for "Growth of" chart - percentage change relative to start of period
         if (filtered.length === 0) return [];
 
-        const baseNav = filtered[0].nav;
-        return filtered.map(s => ({
-            date: s.date,
-            displayDate: new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }),
-            nav: s.nav,
-            value: baseNav > 0 ? ((s.nav - baseNav) / baseNav) * 100 : 0
-        }));
-    }, [sortedSnapshots, timeRange]);
+        // Calculate Total Equity for start to determine baseline
+        const startDate_str = filtered[0].date;
+        let startWithdrawn = 0;
+        for (const [txDate, amount] of withdrawalMap.entries()) {
+            if (new Date(txDate) <= new Date(startDate_str)) {
+                startWithdrawn = amount;
+            }
+        }
+        const baseEquity = filtered[0].nav + startWithdrawn;
+
+        return filtered.map(s => {
+            // Find cumulative withdrawn up to this snapshot date
+            let withdrawn = 0;
+            for (const [txDate, amount] of withdrawalMap.entries()) {
+                if (new Date(txDate) <= new Date(s.date)) {
+                    withdrawn = amount;
+                }
+            }
+
+            const totalEquity = s.nav + withdrawn;
+            const navPercentage = baseEquity > 0 ? ((s.nav - (filtered[0].nav + startWithdrawn)) / baseEquity) * 100 : 0;
+            const withdrawnPercentage = baseEquity > 0 ? ((withdrawn - startWithdrawn) / baseEquity) * 100 : 0;
+
+            return {
+                date: s.date,
+                displayDate: new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }),
+                nav: s.nav,
+                withdrawn,
+                totalEquity,
+                value: navPercentage,
+                withdrawnPercentage: withdrawnPercentage,
+            };
+        });
+    }, [sortedSnapshots, timeRange, transactions]);
 
     // Current period return
     const periodReturn = useMemo(() => {
@@ -142,13 +182,31 @@ export default function PerformanceTab({ xirr, totalReturn, snapshots = [], load
                 </div>
             </div>
 
+            {/* Info Banner */}
+            <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4 mb-6">
+                <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                    <div className="flex-1">
+                        <h4 className="text-sm font-semibold text-blue-300 mb-1">
+                            Total Equity Performance
+                        </h4>
+                        <p className="text-xs text-slate-400">
+                            Performance is calculated based on total assets owned past and present (Current NAV + Withdrawn Funds).
+                            <span className="font-semibold text-blue-300"> Withdrawals do not reduce your investment performance.</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             {/* Main Chart Section */}
             <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
                     <div>
-                        <h3 className="text-lg font-semibold text-white">Portfolio Growth</h3>
+                        <h3 className="text-lg font-semibold text-white">Total Equity Growth</h3>
                         <p className="text-sm text-slate-400 mt-1">
-                            Cumulative return from baseline • Shows total growth since {timeRange === 'ALL' ? 'inception' : 'period start'}
+                            Combined value of holdings + withdrawals • Shows true performance over time
                         </p>
                         <p className="text-sm text-slate-400">
                             Current period return:
@@ -175,54 +233,103 @@ export default function PerformanceTab({ xirr, totalReturn, snapshots = [], load
                 </div>
 
                 <div className="h-[350px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <ResponsiveContainer width="100%" height={400}>
+                        <AreaChart data={chartData}>
                             <defs>
-                                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                <linearGradient id="colorNav" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
+                                </linearGradient>
+                                <linearGradient id="colorWithdrawn" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.4} />
+                                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0.1} />
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} vertical={false} />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
                             <XAxis
                                 dataKey="displayDate"
-                                stroke="#94a3b8"
-                                tick={{ fontSize: 12 }}
-                                tickMargin={10}
-                                minTickGap={30}
+                                stroke="#64748b"
+                                tick={{ fill: '#94a3b8', fontSize: 12 }}
+                                tickLine={{ stroke: '#475569' }}
                             />
                             <YAxis
-                                stroke="#94a3b8"
-                                tick={{ fontSize: 12 }}
-                                tickFormatter={(val) => `${val.toFixed(0)}%`}
+                                stroke="#64748b"
+                                tick={{ fill: '#94a3b8', fontSize: 12 }}
+                                tickFormatter={(value) => `${value.toFixed(0)}%`}
                             />
                             <Tooltip
                                 content={({ active, payload }) => {
                                     if (active && payload && payload.length) {
+                                        const data = payload[0].payload;
                                         return (
-                                            <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-xl">
-                                                <p className="text-slate-400 text-xs mb-1">{payload[0].payload.displayDate}</p>
-                                                <p className="text-white font-bold text-lg">
-                                                    {Number(payload[0].value).toFixed(2)}%
+                                            <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-xl max-w-xs">
+                                                <p className="text-slate-400 text-xs mb-2">{data.displayDate}</p>
+                                                <p className="text-white font-bold text-lg mb-1">
+                                                    {Number(data.value).toFixed(2)}%
                                                 </p>
-                                                <p className="text-slate-400 text-xs">NAV: {Number(payload[0].payload.nav).toLocaleString()}</p>
+                                                <div className="border-t border-slate-700 mt-2 pt-2 space-y-1">
+                                                    <p className="text-slate-400 text-xs">
+                                                        <span className="text-blue-400 font-semibold">
+                                                            Total Equity:
+                                                        </span>{' '}
+                                                        {Number(data.totalEquity).toLocaleString()}
+                                                    </p>
+                                                    <p className="text-slate-400 text-xs">
+                                                        • Current NAV: {Number(data.nav).toLocaleString()}
+                                                    </p>
+                                                    <p className="text-slate-400 text-xs">
+                                                        • Withdrawn: {Number(data.withdrawn).toLocaleString()}
+                                                    </p>
+                                                </div>
+                                                <div className="border-t border-slate-700 mt-2 pt-2">
+                                                    <p className="text-xs text-slate-500 italic">
+                                                        Performance = NAV + Withdrawn
+                                                    </p>
+                                                </div>
                                             </div>
                                         );
                                     }
                                     return null;
                                 }}
                             />
+                            <ReferenceLine y={0} stroke="#ef4444" strokeDasharray="3 3" opacity={0.5} />
+
+                            {/* Stacked Areas: NAV + Withdrawn */}
                             <Area
                                 type="monotone"
                                 dataKey="value"
+                                stackId="1"
                                 stroke="#3b82f6"
-                                strokeWidth={3}
-                                fillOpacity={1}
-                                fill="url(#colorValue)"
+                                strokeWidth={2}
+                                fill="url(#colorNav)"
+                                name="NAV Growth"
                             />
-                            <ReferenceLine y={0} stroke="#64748b" strokeDasharray="3 3" />
+                            <Area
+                                type="monotone"
+                                dataKey="withdrawnPercentage"
+                                stackId="1"
+                                stroke="#a855f7"
+                                strokeWidth={2}
+                                fill="url(#colorWithdrawn)"
+                                name="Withdrawn"
+                            />
                         </AreaChart>
                     </ResponsiveContainer>
+                </div>
+
+                {/* Chart Legend */}
+                <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-slate-700">
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                        <span className="text-xs text-slate-400">NAV Growth</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                        <span className="text-xs text-slate-400">Withdrawn</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 italic">Total = NAV + Withdrawn</span>
+                    </div>
                 </div>
             </div>
 

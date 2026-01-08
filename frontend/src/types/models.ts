@@ -88,10 +88,12 @@ export interface Snapshot {
 export interface PortfolioPerformance {
     portfolio_id: string;
     total_invested: number;
+    total_withdrawn: number;  // Sum of all withdrawals
     current_nav: number;
+    total_equity: number;  // Current NAV + Total Withdrawn (core performance metric)
     profit: number;
     profit_percentage: number;
-    xirr: number;
+    xirr: number | null;  // null when XIRR calculation fails to converge
 }
 
 export interface CashBalance {
@@ -111,7 +113,9 @@ export interface DashboardData {
 
 export interface AssetTypeMetrics {
     asset_type: string;
-    total_net_worth: number;
+    total_net_worth: number;  // Total Equity across all portfolios
+    total_withdrawn: number;  // Sum of all withdrawals
+    total_invested: number;  // Sum of all deposits
     total_profit_loss: number;
     profit_loss_percentage: number;
     average_xirr: number;

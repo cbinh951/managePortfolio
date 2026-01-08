@@ -14,6 +14,7 @@ import {
     AssetTypeMetrics,
 } from '../types/models';
 import xirr from 'xirr';
+import { calculateTotalWithdrawn, calculateTotalInvested } from './calculation-service';
 
 export class SupabaseService {
     // ============================================
@@ -655,18 +656,11 @@ export class SupabaseService {
         );
         const isGoldPortfolio = asset?.asset_name === 'Vang' || asset?.asset_type === 'GOLD';
 
-        // Calculate total invested (deposits - withdrawals)
-        const totalInvested = transactions.reduce((sum, t) => {
-            if (t.type === TransactionType.DEPOSIT ||
-                (t.type === TransactionType.TRANSFER && t.amount > 0)) {
-                return sum + Math.abs(t.amount);
-            }
-            if (t.type === TransactionType.WITHDRAW ||
-                (t.type === TransactionType.TRANSFER && t.amount < 0)) {
-                return sum - Math.abs(t.amount);
-            }
-            return sum;
-        }, 0);
+        // Calculate total invested (sum of deposits only - withdrawals don't affect this)
+        const totalInvested = calculateTotalInvested(transactions);
+
+        // Calculate total withdrawn using utility function
+        const totalWithdrawn = calculateTotalWithdrawn(transactions);
 
         // Get latest snapshot
         const latestSnapshot = snapshots[0];
@@ -702,8 +696,11 @@ export class SupabaseService {
             currentNav = latestSnapshot ? latestSnapshot.nav : 0;
         }
 
-        // Calculate profit
-        const profit = currentNav - totalInvested;
+        // Calculate Total Equity = Current NAV + Total Withdrawn
+        const totalEquity = currentNav + totalWithdrawn;
+
+        // Calculate profit based on Total Equity (not just current NAV)
+        const profit = totalEquity - totalInvested;
         const profitPercentage = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
 
         // Calculate XIRR
@@ -735,7 +732,9 @@ export class SupabaseService {
         return {
             portfolio_id,
             total_invested: totalInvested,
+            total_withdrawn: totalWithdrawn,
             current_nav: currentNav,
+            total_equity: totalEquity,
             profit,
             profit_percentage: profitPercentage,
             xirr: xirrValue,
@@ -795,16 +794,17 @@ export class SupabaseService {
         const cashAccounts = await this.getAllCashBalances();
 
         const totalCash = cashAccounts.reduce((sum, acc) => sum + acc.balance, 0);
-        const totalInvestmentNav = portfolios.reduce((sum, p) => sum + p.current_nav, 0);
-        const totalNetWorth = totalCash + totalInvestmentNav;
+        // Use Total Equity instead of NAV for investment value
+        const totalInvestmentEquity = portfolios.reduce((sum, p) => sum + p.total_equity, 0);
+        const totalNetWorth = totalCash + totalInvestmentEquity;
 
         const cashPercentage = totalNetWorth > 0 ? (totalCash / totalNetWorth) * 100 : 0;
-        const investmentPercentage = totalNetWorth > 0 ? (totalInvestmentNav / totalNetWorth) * 100 : 0;
+        const investmentPercentage = totalNetWorth > 0 ? (totalInvestmentEquity / totalNetWorth) * 100 : 0;
 
         return {
             total_net_worth: totalNetWorth,
             total_cash: totalCash,
-            total_investment_nav: totalInvestmentNav,
+            total_investment_nav: totalInvestmentEquity,  // This now represents Total Equity
             cash_percentage: cashPercentage,
             investment_percentage: investmentPercentage,
             portfolios,
@@ -829,8 +829,9 @@ export class SupabaseService {
         });
 
         // Initialize metrics
-        let totalNetWorth = 0;
+        let totalNetWorth = 0;  // This will represent Total Equity
         let totalInvested = 0;
+        let totalWithdrawn = 0;
         const xirrs: number[] = [];
 
         // Handle CASH filter
@@ -842,7 +843,7 @@ export class SupabaseService {
                     if (balanceData) {
                         totalNetWorth += balanceData.balance;
                     }
-                    // Cash accounts don't have invested amounts or XIRR
+                    // Cash accounts don't have invested amounts, withdrawn amounts, or XIRR
                 } catch (error) {
                     console.error(`Error processing cash account ${cashAccount.cash_account_id}:`, error);
                 }
@@ -862,8 +863,10 @@ export class SupabaseService {
                 try {
                     const performance = await this.getPortfolioPerformance(portfolio.portfolio_id);
                     if (performance) {
-                        totalNetWorth += performance.current_nav;
+                        // Use Total Equity instead of just current_nav
+                        totalNetWorth += performance.total_equity;
                         totalInvested += performance.total_invested;
+                        totalWithdrawn += performance.total_withdrawn;
                         // Only include valid XIRR values (filter out null)
                         if (performance.xirr !== null) {
                             xirrs.push(performance.xirr);
@@ -874,12 +877,17 @@ export class SupabaseService {
                 }
             }
 
-            // If ALL, also include cash accounts
+            // Calculate total equity from portfolios (for profit calculation)
+            const totalPortfolioEquity = totalNetWorth;  // Before adding cash
+
+            // For "ALL" filter, add cash accounts to net worth but NOT to profit calculations
+            let totalCashBalance = 0;
             if (!assetTypeFilter || assetTypeFilter === 'ALL') {
                 for (const cashAccount of cashAccounts) {
                     try {
                         const balanceData = await this.getCashBalance(cashAccount.cash_account_id);
                         if (balanceData) {
+                            totalCashBalance += balanceData.balance;
                             totalNetWorth += balanceData.balance;
                         }
                     } catch (error) {
@@ -887,23 +895,26 @@ export class SupabaseService {
                     }
                 }
             }
+
+            // Profit is only from investment portfolios, not cash accounts
+            const totalProfitLoss = totalPortfolioEquity - totalInvested;
+            const profitLossPercentage = totalInvested > 0 ? (totalProfitLoss / totalInvested) * 100 : 0;
+
+            // Calculate average XIRR
+            const averageXirr = xirrs.length > 0
+                ? xirrs.reduce((sum, val) => sum + val, 0) / xirrs.length
+                : 0;
+
+            return {
+                asset_type: assetTypeFilter || 'ALL',
+                total_net_worth: totalNetWorth,  // Includes cash for "ALL"
+                total_withdrawn: totalWithdrawn,
+                total_invested: totalInvested,
+                total_profit_loss: totalProfitLoss,  // Only from investments, not cash
+                profit_loss_percentage: Math.round(profitLossPercentage * 100) / 100,
+                average_xirr: Math.round(averageXirr * 100) / 100,
+            };
         }
-
-        const totalProfitLoss = totalNetWorth - totalInvested;
-        const profitLossPercentage = totalInvested > 0 ? (totalProfitLoss / totalInvested) * 100 : 0;
-
-        // Calculate average XIRR
-        const averageXirr = xirrs.length > 0
-            ? xirrs.reduce((sum, val) => sum + val, 0) / xirrs.length
-            : 0;
-
-        return {
-            asset_type: assetTypeFilter || 'ALL',
-            total_net_worth: totalNetWorth,
-            total_profit_loss: totalProfitLoss,
-            profit_loss_percentage: Math.round(profitLossPercentage * 100) / 100,
-            average_xirr: Math.round(averageXirr * 100) / 100,
-        };
     }
 }
 

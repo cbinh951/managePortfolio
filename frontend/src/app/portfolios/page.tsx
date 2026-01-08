@@ -32,6 +32,7 @@ export interface PortfolioRow {
     platform: string;
     strategy: string;
     balance: number;
+    withdrawn: number;
     profit: number;
     profitPercentage: number;
     xirr: number | null;
@@ -92,6 +93,7 @@ export default function PortfoliosPage() {
                     platform: platform?.platform_name || 'Unknown',
                     strategy: strategy?.strategy_name || 'Unknown',
                     balance: performance?.current_nav || 0,
+                    withdrawn: performance?.total_withdrawn || 0,
                     profit: performance?.profit || 0,
                     profitPercentage: performance?.profit_percentage || 0,
                     xirr: performance?.xirr || null,
@@ -111,6 +113,7 @@ export default function PortfoliosPage() {
                     platform: platform?.platform_name || 'Unknown',
                     strategy: 'Holding',
                     balance: balance?.balance || 0,
+                    withdrawn: 0,
                     profit: 0,
                     profitPercentage: 0,
                     xirr: null,
@@ -122,7 +125,9 @@ export default function PortfoliosPage() {
                 totalNetWorth: dashboardData.total_net_worth,
                 totalProfit: dashboardData.portfolios.reduce((sum, p) => sum + p.profit, 0),
                 averageXIRR: dashboardData.portfolios.length > 0
-                    ? dashboardData.portfolios.reduce((sum, p) => sum + p.xirr, 0) / dashboardData.portfolios.length
+                    ? dashboardData.portfolios
+                        .filter(p => p.xirr !== null)
+                        .reduce((sum, p) => sum + (p.xirr || 0), 0) / Math.max(1, dashboardData.portfolios.filter(p => p.xirr !== null).length)
                     : 0,
             });
         } catch (error) {
@@ -199,14 +204,49 @@ export default function PortfoliosPage() {
                             ))}
                         </>
                     ) : filteredMetrics ? (
-                        // Filtered metrics
+                        // Filtered metrics with breakdown
                         <>
-                            <KPICard
-                                title="Total Net Worth"
-                                value={formatCurrency(filteredMetrics.total_net_worth, 'VND', settings.displayCurrency, settings.exchangeRate)}
-                                icon={<TrendUpIcon />}
-                                iconBg="bg-emerald-500/10"
-                            />
+                            {/* Total Equity Card with Breakdown */}
+                            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 hover:border-slate-600 transition-colors">
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                                        Total Equity
+                                    </span>
+                                    <div className="bg-blue-500/10 p-2 rounded-lg opacity-70">
+                                        <TrendUpIcon />
+                                    </div>
+                                </div>
+                                <div className="text-3xl font-bold text-blue-400 mb-3">
+                                    {formatCurrency(filteredMetrics.total_net_worth, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                </div>
+                                {/* Breakdown */}
+                                <div className="border-t border-slate-700 pt-3 space-y-1.5">
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-slate-500">Current NAV:</span>
+                                        <span className="text-slate-300 font-medium">
+                                            {formatCurrency(
+                                                filteredMetrics.total_net_worth - filteredMetrics.total_withdrawn,
+                                                'VND',
+                                                settings.displayCurrency,
+                                                settings.exchangeRate
+                                            )}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-slate-500">Withdrawn:</span>
+                                        <span className="text-purple-400 font-medium">
+                                            {formatCurrency(filteredMetrics.total_withdrawn, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between text-xs pt-1 border-t border-slate-700/50">
+                                        <span className="text-slate-500">Invested:</span>
+                                        <span className="text-slate-400 font-medium">
+                                            {formatCurrency(filteredMetrics.total_invested, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <KPICard
                                 title="Total Profit/Loss"
                                 value={formatCurrency(filteredMetrics.total_profit_loss, 'VND', settings.displayCurrency, settings.exchangeRate)}

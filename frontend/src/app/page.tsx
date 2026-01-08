@@ -236,7 +236,7 @@ export default function Home() {
               <div className="relative group">
                 <KPICard
                   title="Invested Capital"
-                  value={formatCurrency(dashboardData.total_investment_nav - totalProfit, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                  value={formatCurrency(dashboardData.portfolios.reduce((sum: number, p: any) => sum + p.total_invested, 0), 'VND', settings.displayCurrency, settings.exchangeRate)}
                   icon={<ChartIcon />}
                   iconBg="bg-purple-500/10"
                   valueColor="text-purple-400"
@@ -272,7 +272,7 @@ export default function Home() {
                   portfolios={dashboardData.portfolios.map((p: any) => ({
                     id: p.portfolio_id,
                     name: portfolioNames[p.portfolio_id] || `Portfolio ${p.portfolio_id.substring(0, 4)}`,
-                    value: p.current_nav
+                    value: p.total_equity
                   }))}
                 />
               </div>

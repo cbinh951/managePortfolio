@@ -103,11 +103,17 @@ function daysBetween(date1: Date, date2: Date): number {
 
 /**
  * Calculate total invested amount from transactions
+ * Only counts DEPOSITS and incoming TRANSFERS (positive amounts)
  */
 export function calculateTotalInvested(transactions: Transaction[]): number {
     return transactions
-        .filter(t => ['DEPOSIT', 'TRANSFER'].includes(t.type))
-        .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        .filter(t => {
+            if (t.type === 'DEPOSIT') return true;
+            // Only count positive transfers (incoming money)
+            if (t.type === 'TRANSFER' && t.amount > 0) return true;
+            return false;
+        })
+        .reduce((sum, t) => sum + t.amount, 0);
 }
 
 /**

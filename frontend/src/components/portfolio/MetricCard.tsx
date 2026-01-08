@@ -7,6 +7,7 @@ interface MetricCardProps {
     valueColor?: string;
     trend?: 'up' | 'down' | 'neutral';
     loading?: boolean;
+    subtitle?: string;
 }
 
 export default function MetricCard({
@@ -18,6 +19,7 @@ export default function MetricCard({
     valueColor = 'text-white',
     trend = 'neutral',
     loading = false,
+    subtitle,
 }: MetricCardProps) {
     const getTrendColor = () => {
         if (trend === 'up') return 'text-emerald-400';
@@ -46,9 +48,16 @@ export default function MetricCard({
     return (
         <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 hover:border-slate-600 transition-colors">
             <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    {label}
-                </span>
+                <div>
+                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+                        {label}
+                    </span>
+                    {subtitle && (
+                        <div className="text-xs text-slate-500 mt-0.5">
+                            {subtitle}
+                        </div>
+                    )}
+                </div>
                 {icon && <div className="opacity-70">{icon}</div>}
             </div>
 
