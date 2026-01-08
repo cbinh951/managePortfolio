@@ -848,6 +848,17 @@ export class SupabaseService {
                     console.error(`Error processing cash account ${cashAccount.cash_account_id}:`, error);
                 }
             }
+
+            // Return metrics for cash accounts only
+            return {
+                asset_type: 'CASH',
+                total_net_worth: totalNetWorth,
+                total_withdrawn: 0,
+                total_invested: 0,
+                total_profit_loss: 0,
+                profit_loss_percentage: 0,
+                average_xirr: 0,
+            };
         } else {
             // Filter portfolios by asset name if specified
             let filteredPortfolios = portfolios;
