@@ -6,17 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Import services
-import { CsvService } from './services/csv-service';
 import { isSupabaseEnabled } from './config/supabase';
-
-// CSV Routes (fallback)
-import { createPortfolioRoutes } from './routes/portfolios';
-import { createCashAccountRoutes } from './routes/cash-accounts';
-import { createTransactionRoutes } from './routes/transactions';
-import { createSnapshotRoutes } from './routes/snapshots';
-import { createDashboardRoutes } from './routes/dashboard';
-import { createMasterRoutes } from './routes/master';
-import { createAssetAnalyticsRoutes } from './routes/asset-analytics';
 
 // Supabase Routes
 import {
@@ -31,7 +21,6 @@ import {
 
 const app: Express = express();
 const PORT = process.env.PORT || 3001;
-const DATA_PATH = process.env.DATA_PATH || './data';
 const USE_SUPABASE = isSupabaseEnabled();
 
 // CORS Configuration - Allow all origins for now (can restrict later)
@@ -80,15 +69,8 @@ if (USE_SUPABASE) {
     app.use('/api/master', createSupabaseMasterRoutes());
     app.use('/api/asset-analytics', createSupabaseAssetAnalyticsRoutes());
 } else {
-    console.log('📁 Using CSV files for data storage');
-    const csvService = new CsvService(DATA_PATH);
-    app.use('/api/portfolios', createPortfolioRoutes(csvService));
-    app.use('/api/cash-accounts', createCashAccountRoutes(csvService));
-    app.use('/api/transactions', createTransactionRoutes(csvService));
-    app.use('/api/snapshots', createSnapshotRoutes(csvService));
-    app.use('/api/dashboard', createDashboardRoutes(csvService));
-    app.use('/api/master', createMasterRoutes(csvService));
-    app.use('/api/asset-analytics', createAssetAnalyticsRoutes(csvService));
+    console.error('❌ Supabase is not enabled. CSV storage has been removed.');
+    process.exit(1);
 }
 
 // Root route
@@ -96,7 +78,7 @@ app.get('/', (req, res) => {
     res.json({
         status: 'ok',
         message: 'Portfolio Management API',
-        storage: USE_SUPABASE ? 'supabase' : 'csv',
+        storage: 'supabase',
         endpoints: ['/api/portfolios', '/api/transactions', '/api/snapshots', '/api/dashboard', '/api/asset-analytics', '/health']
     });
 });
@@ -106,7 +88,7 @@ app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
         message: 'Portfolio Management API is running',
-        storage: USE_SUPABASE ? 'supabase' : 'csv',
+        storage: 'supabase',
     });
 });
 
@@ -118,7 +100,7 @@ app.use((req, res) => {
 // Start server
 app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📦 Storage: ${USE_SUPABASE ? 'Supabase' : 'CSV files'}`);
+    console.log(`📦 Storage: Supabase`);
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
