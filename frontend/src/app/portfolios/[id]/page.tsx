@@ -440,6 +440,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                     )}
                     {activeTab === 'performance' && (
                         <PerformanceTab
+                            portfolioId={id}
                             xirr={xirr}
                             totalReturn={profitPercentage}
                             snapshots={data.snapshots}

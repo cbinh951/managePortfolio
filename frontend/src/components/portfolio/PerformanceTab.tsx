@@ -5,9 +5,11 @@ import {
 } from 'recharts';
 import MonthlyHeatmap from '@/components/portfolio/MonthlyHeatmap';
 import RiskMetrics from '@/components/portfolio/RiskMetrics';
+import PerformanceChart from '@/components/portfolio/PerformanceChart';
 import { calculateMonthlyReturns, calculateRiskMetrics, formatXIRR } from '@/utils/performanceUtils';
 
 interface PerformanceTabProps {
+    portfolioId?: string;  // Portfolio ID for chart data
     xirr: number | null;
     totalReturn: number;
     snapshots?: Snapshot[];
@@ -17,7 +19,7 @@ interface PerformanceTabProps {
 
 type TimeRange = '1M' | '3M' | '6M' | 'YTD' | '1Y' | 'ALL';
 
-export default function PerformanceTab({ xirr, totalReturn, snapshots = [], transactions = [], loading = false }: PerformanceTabProps) {
+export default function PerformanceTab({ portfolioId, xirr, totalReturn, snapshots = [], transactions = [], loading = false }: PerformanceTabProps) {
     const [timeRange, setTimeRange] = useState<TimeRange>('ALL');
 
     const sortedSnapshots = useMemo(() => {
@@ -148,6 +150,11 @@ export default function PerformanceTab({ xirr, totalReturn, snapshots = [], tran
 
     return (
         <div className="space-y-6">
+            {/* Portfolio Equity Chart - New Feature */}
+            {portfolioId && (
+                <PerformanceChart portfolioId={portfolioId} />
+            )}
+
             <h2 className="text-2xl font-bold text-white mb-2">Performance Analytics</h2>
             <p className="text-slate-400 -mt-4 mb-6">Detailed analysis of your portfolio&apos;s growth, risk metrics, and returns over time.</p>
 

@@ -18,9 +18,9 @@ const TrendUpIcon = () => (
     </svg>
 );
 
-const PercentIcon = () => (
-    <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+const CashIcon = () => (
+    <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
     </svg>
 );
 
@@ -42,7 +42,7 @@ interface PortfolioData {
     rows: PortfolioRow[];
     totalNetWorth: number;
     totalProfit: number;
-    averageXIRR: number;
+    totalCash: number;
 }
 
 export default function PortfoliosPage() {
@@ -51,7 +51,7 @@ export default function PortfoliosPage() {
         rows: [],
         totalNetWorth: 0,
         totalProfit: 0,
-        averageXIRR: 0,
+        totalCash: 0,
     });
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -124,11 +124,7 @@ export default function PortfoliosPage() {
                 rows,
                 totalNetWorth: dashboardData.total_net_worth,
                 totalProfit: dashboardData.portfolios.reduce((sum, p) => sum + p.profit, 0),
-                averageXIRR: dashboardData.portfolios.length > 0
-                    ? dashboardData.portfolios
-                        .filter(p => p.xirr !== null)
-                        .reduce((sum, p) => sum + (p.xirr || 0), 0) / Math.max(1, dashboardData.portfolios.filter(p => p.xirr !== null).length)
-                    : 0,
+                totalCash: dashboardData.total_cash,
             });
         } catch (error) {
             console.error('Failed to fetch portfolio data:', error);
@@ -257,12 +253,16 @@ export default function PortfoliosPage() {
                                 valueColor={filteredMetrics.total_profit_loss >= 0 ? 'text-emerald-400' : 'text-red-400'}
                             />
                             <KPICard
-                                title="Average XIRR"
-                                value={`${formatXIRR(filteredMetrics.average_xirr)}%`}
-                                changeLabel="Annualized"
-                                icon={<PercentIcon />}
-                                iconBg="bg-amber-500/10"
-                                valueColor="text-amber-400"
+                                title="Cash"
+                                value={formatCurrency(
+                                    selectedAssetType === 'CASH' ? filteredMetrics.total_net_worth : data.totalCash,
+                                    'VND',
+                                    settings.displayCurrency,
+                                    settings.exchangeRate
+                                )}
+                                icon={<CashIcon />}
+                                iconBg="bg-green-500/10"
+                                valueColor="text-green-400"
                             />
                         </>
                     ) : (
@@ -282,12 +282,11 @@ export default function PortfoliosPage() {
                                 valueColor={data.totalProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}
                             />
                             <KPICard
-                                title="Average XIRR"
-                                value={`${formatXIRR(data.averageXIRR)}%`}
-                                changeLabel="Annualized"
-                                icon={<PercentIcon />}
-                                iconBg="bg-amber-500/10"
-                                valueColor="text-amber-400"
+                                title="Cash"
+                                value={formatCurrency(data.totalCash, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                icon={<CashIcon />}
+                                iconBg="bg-green-500/10"
+                                valueColor="text-green-400"
                             />
                         </>
                     )}

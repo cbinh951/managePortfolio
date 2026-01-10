@@ -11,6 +11,8 @@ import {
     Platform,
     Strategy,
     AssetTypeMetrics,
+    TimeRange,
+    PerformanceChartData,
 } from '@/types/models';
 import {
     ApiResponse,
@@ -93,6 +95,20 @@ class ApiClient {
         if (!response.data.success) {
             throw new Error(response.data.error || 'Failed to delete portfolio');
         }
+    }
+
+    async getPortfolioChartData(
+        portfolioId: string,
+        timeRange: TimeRange = TimeRange.ALL
+    ): Promise<PerformanceChartData> {
+        const response = await this.client.get<ApiResponse<PerformanceChartData>>(
+            `/portfolios/${portfolioId}/performance-chart`,
+            { params: { timeRange } }
+        );
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch chart data');
+        }
+        return response.data.data;
     }
 
     // Cash Accounts

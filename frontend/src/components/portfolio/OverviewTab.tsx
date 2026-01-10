@@ -27,8 +27,13 @@ export default function OverviewTab({ portfolioName, snapshots = [], transaction
     const calculateInvestedAtDate = (date: string) => {
         return transactions
             .filter(t => new Date(t.date) <= new Date(date))
-            .filter(t => t.type === 'DEPOSIT' || t.type === 'BUY' || t.type === 'TRANSFER')
-            .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+            .filter(t => {
+                // Count DEPOSIT and incoming TRANSFER (positive amounts)
+                if (t.type === 'DEPOSIT') return true;
+                if (t.type === 'TRANSFER' && t.amount > 0) return true; // Only incoming transfers
+                return false;
+            })
+            .reduce((sum, t) => sum + t.amount, 0); // Use actual amount, not abs()
     };
 
     // Calculate gold holdings at a specific date
@@ -165,7 +170,13 @@ export default function OverviewTab({ portfolioName, snapshots = [], transaction
                                 <YAxis
                                     stroke="#94a3b8"
                                     style={{ fontSize: '12px' }}
-                                    tickFormatter={(value) => formatCurrency(value, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                    tickFormatter={(value) => {
+                                        // Format large numbers for chart axis (e.g., 1000000 -> 1M)
+                                        if (value >= 1000000000) return `${(value / 1000000000).toFixed(1)}B`;
+                                        if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+                                        if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                                        return value.toString();
+                                    }}
                                 />
                                 <Tooltip content={<CustomTooltip />} />
                                 <Legend

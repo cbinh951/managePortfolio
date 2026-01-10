@@ -121,3 +121,42 @@ export interface AssetTypeMetrics {
     profit_loss_percentage: number;
     average_xirr: number;
 }
+
+// Portfolio Performance Chart Types
+export enum TimeRange {
+    ONE_MONTH = '1M',
+    YEAR_TO_DATE = 'YTD',
+    ONE_YEAR = '1Y',
+    ALL = 'ALL',
+}
+
+export interface ChartDataPoint {
+    date: string;  // ISO date string
+    total_invested: number;
+    total_withdrawn: number;
+    current_nav: number;
+    total_equity: number;  // Current NAV + Total Withdrawn
+}
+
+export interface TimelinePoint {
+    date: string;
+    transactions: Transaction[];
+    snapshot: Snapshot | null;
+}
+
+export interface PerformanceChartData {
+    portfolio_id: string;
+    portfolio_name: string;
+    data: ChartDataPoint[];
+    summary: {
+        total_invested: number;
+        total_withdrawn: number;
+        current_nav: number;
+        total_equity: number;
+        profit: number;
+        profit_percentage: number;
+        xirr: number | null;
+    };
+    hasData: boolean;
+    message?: string;  // For edge cases like "No snapshots available"
+}
