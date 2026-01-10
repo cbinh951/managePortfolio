@@ -6,6 +6,7 @@ import { apiClient } from '@/services/api';
 import { CashAccount, Portfolio } from '@/types/models';
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatCurrency, convertCurrency, getCurrencySymbol } from '@/utils/currencyUtils';
+import DatePicker from '@/components/common/DatePicker';
 
 interface AccountWithBalance extends CashAccount {
     balance: number;
@@ -296,13 +297,11 @@ export default function TransferPage() {
                                 <label htmlFor="date" className="block text-sm font-medium text-slate-300 mb-2">
                                     Transfer Date <span className="text-red-400">*</span>
                                 </label>
-                                <input
-                                    type="date"
+                                <DatePicker
                                     id="date"
                                     name="date"
                                     value={formData.date}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    onChange={(date) => setFormData(prev => ({ ...prev, date }))}
                                     disabled={submitting}
                                 />
                             </div>

@@ -5,6 +5,7 @@ import { apiClient } from '@/services/api';
 import { Portfolio, CashAccount, AssetType, GoldType, Asset } from '@/types/models';
 import { useSettings } from '@/contexts/SettingsContext';
 import { getCurrencySymbol } from '@/utils/currencyUtils';
+import DatePicker from '@/components/common/DatePicker';
 
 interface AddTransactionModalProps {
     isOpen: boolean;
@@ -428,8 +429,8 @@ export default function AddTransactionModal({
                                                 type="button"
                                                 onClick={() => handleGoldTypeChange(GoldType.BRANDED)}
                                                 className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${goldFields.gold_type === GoldType.BRANDED
-                                                        ? 'bg-yellow-600 text-white'
-                                                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                                                    ? 'bg-yellow-600 text-white'
+                                                    : 'bg-slate-800 text-slate-400 hover:text-white'
                                                     }`}
                                             >
                                                 Vàng Thương Hiệu
@@ -438,8 +439,8 @@ export default function AddTransactionModal({
                                                 type="button"
                                                 onClick={() => handleGoldTypeChange(GoldType.PRIVATE)}
                                                 className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${goldFields.gold_type === GoldType.PRIVATE
-                                                        ? 'bg-yellow-600 text-white'
-                                                        : 'bg-slate-800 text-slate-400 hover:text-white'
+                                                    ? 'bg-yellow-600 text-white'
+                                                    : 'bg-slate-800 text-slate-400 hover:text-white'
                                                     }`}
                                             >
                                                 Vàng Tư Nhân
@@ -502,13 +503,11 @@ export default function AddTransactionModal({
                                     <label htmlFor="date" className="block text-sm font-medium text-slate-300 mb-2">
                                         Date <span className="text-red-400">*</span>
                                     </label>
-                                    <input
-                                        type="date"
+                                    <DatePicker
                                         id="date"
                                         name="date"
                                         value={formData.date}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                        onChange={(date) => setFormData(prev => ({ ...prev, date }))}
                                         disabled={loading}
                                     />
                                 </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { apiClient } from '@/services/api';
 import { Asset, Platform, Strategy } from '@/types/models';
+import DatePicker from '@/components/common/DatePicker';
 
 interface CreatePortfolioModalProps {
     isOpen: boolean;
@@ -321,13 +322,11 @@ export default function CreatePortfolioModal({
                                         <label htmlFor="start_date" className="block text-sm font-medium text-slate-300 mb-2">
                                             Inception Date <span className="text-red-400">*</span>
                                         </label>
-                                        <input
-                                            type="date"
+                                        <DatePicker
                                             id="start_date"
                                             name="start_date"
                                             value={formData.start_date}
-                                            onChange={handleChange}
-                                            className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                            onChange={(date) => setFormData(prev => ({ ...prev, start_date: date }))}
                                             disabled={loading}
                                         />
                                     </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/services/api';
 import { useSettings } from '@/contexts/SettingsContext';
+import DatePicker from '@/components/common/DatePicker';
 
 interface AddTransactionModalProps {
     isOpen: boolean;
@@ -216,13 +217,11 @@ export default function AddTransactionModal({
                             <label htmlFor="date" className="block text-sm font-medium text-slate-300 mb-2">
                                 Date <span className="text-red-400">*</span>
                             </label>
-                            <input
-                                type="date"
+                            <DatePicker
                                 id="date"
                                 name="date"
                                 value={formData.date}
-                                onChange={handleChange}
-                                className="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                onChange={(date) => setFormData(prev => ({ ...prev, date }))}
                                 disabled={loading}
                             />
                         </div>

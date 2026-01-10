@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useSettings } from '@/contexts/SettingsContext';
 import { apiClient } from '@/services/api';
 import { AssetType } from '@/types/models';
+import DatePicker from '@/components/common/DatePicker';
 
 interface AddSnapshotFormProps {
     portfolioId: string;
@@ -139,14 +140,11 @@ export default function AddSnapshotForm({ portfolioId, assetType, onSuccess }: A
                     <label htmlFor="date" className="block text-sm font-medium text-slate-300 mb-2">
                         Snapshot Date <span className="text-red-400">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         id="date"
                         name="date"
                         value={formData.date}
-                        onChange={handleChange}
-                        max={new Date().toISOString().split('T')[0]}
-                        className="w-full px-4 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        onChange={(date) => setFormData(prev => ({ ...prev, date }))}
                         disabled={loading}
                     />
                 </div>
