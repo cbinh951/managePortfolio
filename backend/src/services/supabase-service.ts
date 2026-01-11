@@ -81,7 +81,7 @@ export class SupabaseService {
 
         if (error) {
             console.error('Error deleting asset:', error);
-            return false;
+            throw new Error(error.message || 'Failed to delete asset');
         }
         return true;
     }

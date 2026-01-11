@@ -97,14 +97,7 @@ export function createSupabaseMasterRoutes(): Router {
     // Delete asset
     router.delete('/assets/:id', async (req: Request, res: Response) => {
         try {
-            const success = await supabaseService.deleteAsset(req.params.id);
-            if (!success) {
-                const response: ApiResponse<null> = {
-                    success: false,
-                    error: 'Failed to delete asset',
-                };
-                return res.status(500).json(response);
-            }
+            await supabaseService.deleteAsset(req.params.id);
             const response: ApiResponse<{ message: string }> = {
                 success: true,
                 data: { message: 'Asset deleted successfully' },

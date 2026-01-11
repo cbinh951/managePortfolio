@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/services/api';
-import { Platform } from '@/types/models';
+import { Platform, Asset } from '@/types/models';
 
 interface CreateCashAccountModalProps {
     isOpen: boolean;
@@ -31,11 +31,18 @@ export default function CreateCashAccountModal({ isOpen, onClose, onSuccess }: C
     const loadPlatforms = async () => {
         try {
             setLoadingData(true);
-            const data = await apiClient.getPlatforms();
-            // Filter to only show BANK and WALLET platforms based on platform name
-            const cashPlatforms = data.filter(p => {
-                const nameLower = p.platform_name.toLowerCase();
-                return nameLower.includes('bank') || nameLower.includes('wallet');
+            // Fetch both platforms and assets to filter correctly
+            const [allPlatforms, allAssets] = await Promise.all([
+                apiClient.getPlatforms(),
+                apiClient.getAssets()
+            ]);
+
+            // Filter platforms that are linked to cash assets
+            const cashPlatforms = allPlatforms.filter(p => {
+                const linkedAsset = allAssets.find(a => a.asset_id === p.asset_id);
+                if (!linkedAsset) return false;
+                const assetNameLower = linkedAsset.asset_name.toLowerCase();
+                return assetNameLower.includes('cash');
             });
             setPlatforms(cashPlatforms);
         } catch (err) {
@@ -204,7 +211,7 @@ export default function CreateCashAccountModal({ isOpen, onClose, onSuccess }: C
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     <p className="text-xs text-blue-300">
-                                        Only bank and wallet platforms are shown. You can set an initial balance by adding a deposit transaction after creation.
+                                        Only platforms linked to cash assets are shown. You can set an initial balance by adding a deposit transaction after creation.
                                     </p>
                                 </div>
                             </div>
