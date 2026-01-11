@@ -37,12 +37,12 @@ export default function CreateCashAccountModal({ isOpen, onClose, onSuccess }: C
                 apiClient.getAssets()
             ]);
 
-            // Filter platforms that are linked to cash assets
+            // Filter platforms that are linked to bank assets (for cash accounts)
             const cashPlatforms = allPlatforms.filter(p => {
                 const linkedAsset = allAssets.find(a => a.asset_id === p.asset_id);
                 if (!linkedAsset) return false;
                 const assetNameLower = linkedAsset.asset_name.toLowerCase();
-                return assetNameLower.includes('cash');
+                return assetNameLower.includes('bank');
             });
             setPlatforms(cashPlatforms);
         } catch (err) {
@@ -211,7 +211,7 @@ export default function CreateCashAccountModal({ isOpen, onClose, onSuccess }: C
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     <p className="text-xs text-blue-300">
-                                        Only platforms linked to cash assets are shown. You can set an initial balance by adding a deposit transaction after creation.
+                                        Only platforms linked to bank assets are shown. You can set an initial balance by adding a deposit transaction after creation.
                                     </p>
                                 </div>
                             </div>
