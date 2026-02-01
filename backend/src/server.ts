@@ -102,6 +102,26 @@ app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📦 Storage: Supabase`);
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+
+    // Keep-alive mechanism for Render
+    const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL;
+    if (RENDER_EXTERNAL_URL) {
+        console.log(`⏰ Setting up keep-alive for ${RENDER_EXTERNAL_URL}`);
+        // Ping every 14 minutes (Render sleeps after 15 mins of inactivity)
+        const INTERVAL_MS = 14 * 60 * 1000;
+
+        setInterval(async () => {
+            try {
+                const healthUrl = `${RENDER_EXTERNAL_URL}/health`;
+                // Use built-in fetch (Node 18+) or https module would be safer if version unknown, 
+                // but standard Render node versions are modern.
+                const response = await fetch(healthUrl);
+                console.log(`💓 Keep-alive ping to ${healthUrl}: Status ${response.status}`);
+            } catch (error) {
+                console.error('💓 Keep-alive ping failed:', error);
+            }
+        }, INTERVAL_MS);
+    }
 });
 
 export default app;
