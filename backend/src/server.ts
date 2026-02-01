@@ -58,20 +58,20 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes - Use Supabase if configured, otherwise fall back to CSV
+// Routes - Use Supabase routes (they now support CSV fallback internally)
 if (USE_SUPABASE) {
     console.log('📦 Using Supabase for data storage');
-    app.use('/api/portfolios', createSupabasePortfolioRoutes());
-    app.use('/api/cash-accounts', createSupabaseCashAccountRoutes());
-    app.use('/api/transactions', createSupabaseTransactionRoutes());
-    app.use('/api/snapshots', createSupabaseSnapshotRoutes());
-    app.use('/api/dashboard', createSupabaseDashboardRoutes());
-    app.use('/api/master', createSupabaseMasterRoutes());
-    app.use('/api/asset-analytics', createSupabaseAssetAnalyticsRoutes());
 } else {
-    console.error('❌ Supabase is not enabled. CSV storage has been removed.');
-    process.exit(1);
+    console.warn('⚠️ Supabase is not enabled. Using CSV fallback storage.');
 }
+
+app.use('/api/portfolios', createSupabasePortfolioRoutes());
+app.use('/api/cash-accounts', createSupabaseCashAccountRoutes());
+app.use('/api/transactions', createSupabaseTransactionRoutes());
+app.use('/api/snapshots', createSupabaseSnapshotRoutes());
+app.use('/api/dashboard', createSupabaseDashboardRoutes());
+app.use('/api/master', createSupabaseMasterRoutes());
+app.use('/api/asset-analytics', createSupabaseAssetAnalyticsRoutes());
 
 // Root route
 app.get('/', (req, res) => {

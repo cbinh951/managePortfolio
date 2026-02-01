@@ -1,9 +1,3 @@
 declare module 'xirr' {
-    interface CashFlow {
-        amount: number;
-        when: Date;
-    }
-    
-    function xirr(cashFlows: CashFlow[]): number;
-    export default xirr;
+    export default function xirr(cashFlows: { amount: number; when: Date }[], options?: any): number;
 }

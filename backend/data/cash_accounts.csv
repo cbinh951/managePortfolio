@@ -1,2 +1,2 @@
-cash_account_id,name,platform_id,currency
-CA1766851970792391,MBB,P004,VND
+cash_account_id,name,platform_id,currency,created_at,updated_at
+CA17681354679428394,MBB,P004,VND,2026-01-11 12:44:28.122762+00,2026-01-11 12:44:28.122762+00

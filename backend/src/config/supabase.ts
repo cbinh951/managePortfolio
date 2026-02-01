@@ -3,13 +3,15 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
+const enableSupabase = process.env.ENABLE_SUPABASE === 'true';
+
+if (enableSupabase && (!supabaseUrl || !supabaseKey)) {
     console.warn('⚠️ Supabase credentials not found. Using CSV fallback mode.');
 }
 
-// Create Supabase client (will be null if credentials not provided)
-export const supabase: SupabaseClient | null = 
-    supabaseUrl && supabaseKey 
+// Create Supabase client (will be null if credentials not provided or disabled)
+export const supabase: SupabaseClient | null =
+    enableSupabase && supabaseUrl && supabaseKey
         ? createClient(supabaseUrl, supabaseKey)
         : null;
 
