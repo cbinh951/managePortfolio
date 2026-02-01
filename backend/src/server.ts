@@ -107,20 +107,24 @@ app.listen(PORT, () => {
     const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL;
     if (RENDER_EXTERNAL_URL) {
         console.log(`⏰ Setting up keep-alive for ${RENDER_EXTERNAL_URL}`);
-        // Ping every 14 minutes (Render sleeps after 15 mins of inactivity)
-        const INTERVAL_MS = 14 * 60 * 1000;
 
-        setInterval(async () => {
+        const pingHealth = async () => {
             try {
                 const healthUrl = `${RENDER_EXTERNAL_URL}/health`;
-                // Use built-in fetch (Node 18+) or https module would be safer if version unknown, 
-                // but standard Render node versions are modern.
+                // Use built-in fetch (Node 18+)
                 const response = await fetch(healthUrl);
                 console.log(`💓 Keep-alive ping to ${healthUrl}: Status ${response.status}`);
             } catch (error) {
-                console.error('💓 Keep-alive ping failed:', error);
+                console.error(`💓 Keep-alive ping failed to ${RENDER_EXTERNAL_URL}/health:`, error);
             }
-        }, INTERVAL_MS);
+        };
+
+        // Ping immediately on start to verify configuration
+        pingHealth();
+
+        // Ping every 14 minutes (Render sleeps after 15 mins of inactivity)
+        const INTERVAL_MS = 14 * 60 * 1000;
+        setInterval(pingHealth, INTERVAL_MS);
     }
 });
 
