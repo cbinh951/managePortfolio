@@ -104,27 +104,38 @@ app.listen(PORT, () => {
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 
     // Keep-alive mechanism for Render
+    // Ping both Backend and Frontend to prevent sleep
     const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL;
-    if (RENDER_EXTERNAL_URL) {
-        console.log(`⏰ Setting up keep-alive for ${RENDER_EXTERNAL_URL}`);
+    const FRONTEND_URL = 'https://portfolio-fe-v1.onrender.com/';
 
-        const pingHealth = async () => {
+    if (RENDER_EXTERNAL_URL) {
+        console.log(`⏰ Setting up keep-alive for Backend: ${RENDER_EXTERNAL_URL}`);
+        console.log(`⏰ Setting up keep-alive for Frontend: ${FRONTEND_URL}`);
+
+        const pingUrl = async (url: string, name: string) => {
             try {
-                const healthUrl = `${RENDER_EXTERNAL_URL}/health`;
                 // Use built-in fetch (Node 18+)
-                const response = await fetch(healthUrl);
-                console.log(`💓 Keep-alive ping to ${healthUrl}: Status ${response.status}`);
-            } catch (error) {
-                console.error(`💓 Keep-alive ping failed to ${RENDER_EXTERNAL_URL}/health:`, error);
+                const response = await fetch(url);
+                console.log(`💓 Keep-alive ping to ${name} (${url}): Status ${response.status}`);
+            } catch (error: any) {
+                console.error(`💓 Keep-alive ping failed to ${name} (${url}):`, error.message);
             }
         };
 
-        // Ping immediately on start to verify configuration
-        pingHealth();
+        const pingKeepAlive = async () => {
+            // Ping Backend Health
+            await pingUrl(`${RENDER_EXTERNAL_URL}/health`, 'Backend');
+            // Ping Frontend Hash (or minimal page) to keep it awake
+            await pingUrl(FRONTEND_URL, 'Frontend');
+        };
 
-        // Ping every 14 minutes (Render sleeps after 15 mins of inactivity)
-        const INTERVAL_MS = 14 * 60 * 1000;
-        setInterval(pingHealth, INTERVAL_MS);
+        // Ping immediately on start
+        pingKeepAlive();
+
+        // Ping every 10 minutes (Render sleeps after 15 mins)
+        // 14 minutes might be too close if there's drift
+        const INTERVAL_MS = 10 * 60 * 1000;
+        setInterval(pingKeepAlive, INTERVAL_MS);
     }
 });
 
