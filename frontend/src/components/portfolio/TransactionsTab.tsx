@@ -8,14 +8,25 @@ interface TransactionsTabProps {
     onEdit?: (transaction: Transaction) => void;
     onDelete?: (transaction: Transaction) => void;
     onAddTransaction?: () => void;
+    initialSearch?: string;
 }
 
-export default function TransactionsTab({ transactions, entity, loading = false, onEdit, onDelete, onAddTransaction }: TransactionsTabProps) {
+export default function TransactionsTab({ transactions, entity, loading = false, onEdit, onDelete, onAddTransaction, initialSearch = '' }: TransactionsTabProps) {
+    // Filter transactions if initialSearch provided
+    const filteredTransactions = initialSearch
+        ? transactions.filter(t =>
+            (t.ticker && t.ticker.includes(initialSearch.toUpperCase())) ||
+            (t.description && t.description.toLowerCase().includes(initialSearch.toLowerCase()))
+        )
+        : transactions;
+
     return (
         <div className="space-y-4">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">Transaction History</h3>
+                <h3 className="text-lg font-semibold text-white">
+                    {initialSearch ? `Transactions for "${initialSearch}"` : 'Transaction History'}
+                </h3>
                 {onAddTransaction && (
                     <button
                         onClick={onAddTransaction}
@@ -31,7 +42,7 @@ export default function TransactionsTab({ transactions, entity, loading = false,
 
             {/* Table */}
             <TransactionTable
-                transactions={transactions}
+                transactions={filteredTransactions}
                 portfolios={[entity]}
                 loading={loading}
                 onEdit={onEdit}

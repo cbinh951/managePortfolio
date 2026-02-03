@@ -260,6 +260,16 @@ class ApiClient {
         }
     }
 
+    // Stock Prices
+    async syncStockPrices(): Promise<{ updated: string[] }> {
+        const response = await this.client.post<ApiResponse<{ updated: string[] }>>('/stock-price/sync');
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to sync stock prices');
+        }
+        return response.data.data;
+    }
+
+
     // Master Data
     async getAssets(): Promise<Asset[]> {
         const response = await this.client.get<ApiResponse<Asset[]>>('/master/assets');

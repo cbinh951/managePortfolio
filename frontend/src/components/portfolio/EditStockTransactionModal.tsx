@@ -19,7 +19,7 @@ export default function EditStockTransactionModal({ isOpen, onClose, onSuccess, 
     const [type, setType] = useState<TransactionType>(TransactionType.BUY);
     const [ticker, setTicker] = useState('');
     const [date, setDate] = useState('');
-    const [feePercentage, setFeePercentage] = useState('0.15');
+    const [feePercentage, setFeePercentage] = useState('0');
     const [price, setPrice] = useState('');
     const [quantity, setQuantity] = useState('');
     const [note, setNote] = useState('');
@@ -53,12 +53,14 @@ export default function EditStockTransactionModal({ isOpen, onClose, onSuccess, 
 
             // Fee analysis
             const feeVal = transaction.fee ? Number(transaction.fee) : 0;
-            if (feeVal > 0 && priceVal > 0 && qty > 0) {
+            if (priceVal > 0 && qty > 0) {
                 const totalRaw = priceVal * qty;
                 const feePct = (feeVal / totalRaw) * 100;
-                setFeePercentage(feePct.toFixed(2)); // Round to 2 decimals
+                // If it's very close to 0 but not 0 (float error), user usually sees 0. 
+                // Using toFixed(2) handles generic cases.
+                setFeePercentage(feePct.toFixed(2));
             } else {
-                setFeePercentage('0.15'); // Default or fallback
+                setFeePercentage('0');
             }
 
             setError(null);
@@ -142,8 +144,8 @@ export default function EditStockTransactionModal({ isOpen, onClose, onSuccess, 
                             type="button"
                             onClick={() => setType(TransactionType.BUY)}
                             className={`flex-1 py-2.5 rounded-lg font-medium transition-all ${type === TransactionType.BUY
-                                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                                 }`}
                         >
                             Buy Stock
@@ -152,8 +154,8 @@ export default function EditStockTransactionModal({ isOpen, onClose, onSuccess, 
                             type="button"
                             onClick={() => setType(TransactionType.SELL)}
                             className={`flex-1 py-2.5 rounded-lg font-medium transition-all ${type === TransactionType.SELL
-                                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/20'
-                                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                ? 'bg-red-500 text-white shadow-lg shadow-red-500/20'
+                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                                 }`}
                         >
                             Sell Stock

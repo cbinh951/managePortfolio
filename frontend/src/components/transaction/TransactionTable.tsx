@@ -53,14 +53,28 @@ function groupTransfers(
     transactions.forEach((transaction, index) => {
         if (processed.has(transaction.transaction_id)) return;
 
-        // If not a transfer, add as-is
+        const cleanStr = (s?: string) => (s === 'null' ? undefined : s);
+        const txTicker = cleanStr(transaction.ticker);
+        let txDesc = cleanStr(transaction.description) || '';
+
+        // Prioritize Ticker in description for non-transfers (Stocks/Gold)
+        // enhanced description for gold transactions
+        if (transaction.gold_type && transaction.quantity_chi) {
+            const goldTypeLabel = transaction.gold_type === 'BRANDED' ? 'Vàng Thương Hiệu' : 'Vàng Tư Nhân';
+            const goldDetails = `[${goldTypeLabel}] ${transaction.quantity_chi} chỉ`;
+            txDesc = txDesc ? `${goldDetails} - ${txDesc}` : goldDetails;
+        } else if (txTicker) {
+            txDesc = txDesc ? `${txTicker} - ${txDesc}` : txTicker;
+        }
+
+        // If not a transfer, add as-is (this handles BUY/SELL/DEPOSIT/WITHDRAW)
         if (transaction.type !== 'TRANSFER') {
             consolidated.push({
                 id: transaction.transaction_id,
                 date: transaction.date,
                 type: transaction.type,
                 amount: transaction.amount,
-                description: transaction.description || '',
+                description: txDesc || '-',
                 fromAccount: getAccountName(transaction.portfolio_id, transaction.cash_account_id),
                 toAccount: '',
                 fromAccountId: transaction.portfolio_id || transaction.cash_account_id || '',
@@ -146,6 +160,9 @@ function groupTransfers(
                 const goldTypeLabel = transaction.gold_type === 'BRANDED' ? 'Vàng Thương Hiệu' : 'Vàng Tư Nhân';
                 const goldDetails = `[${goldTypeLabel}] ${transaction.quantity_chi} chỉ`;
                 description = description ? `${goldDetails} - ${description}` : goldDetails;
+            } else if (transaction.ticker) {
+                // For stock transactions, prioritize Ticker
+                description = description ? `${transaction.ticker} - ${description}` : transaction.ticker;
             } else if (!description) {
                 description = transaction.type === 'TRANSFER' ? 'Transfer' : '-';
             }
@@ -171,6 +188,7 @@ function groupTransfers(
 }
 
 export default function TransactionTable({ transactions, portfolios, loading = false, onEdit, onDelete }: TransactionTableProps) {
+    // console.log('DEBUG TR TABLE:', transactions.map(t => ({ id: t.transaction_id, type: t.type, ticker: t.ticker, desc: t.description })));
     const { settings } = useSettings();
     const [currentPage, setCurrentPage] = useState(1);
     const [sortColumn, setSortColumn] = useState<'date' | 'type' | 'amount'>('date');

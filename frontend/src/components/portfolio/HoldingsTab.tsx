@@ -8,8 +8,12 @@ import { useParams } from 'next/navigation';
 
 interface HoldingsTabProps {
     transactions: Transaction[];
+
     currentPrices?: Record<string, number>; // Placeholder for future real-time prices
     onEditTransaction?: (transaction: Transaction) => void;
+    onDeleteTransaction?: (transaction: Transaction) => void;
+    onRefresh?: () => void;
+    onViewTransactions?: (ticker: string) => void;
 }
 
 interface Holding {
@@ -23,15 +27,17 @@ interface Holding {
     profitPercent: number;
 }
 
-export default function HoldingsTab({ transactions, currentPrices = {}, onEditTransaction }: HoldingsTabProps) {
+export default function HoldingsTab({ transactions, currentPrices = {}, onEditTransaction, onDeleteTransaction, onRefresh, onViewTransactions }: HoldingsTabProps) {
     const { settings } = useSettings();
     const params = useParams();
     const portfolioId = params?.id as string;
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [selectedTicker, setSelectedTicker] = useState<string>('');
 
     const handleSuccess = () => {
         setIsAddModalOpen(false);
-        window.location.reload();
+        setSelectedTicker('');
+        if (onRefresh) onRefresh();
     };
 
     const { holdings, totalMarketValue, totalCost, totalProfit, totalProfitPercent } = useMemo(() => {
@@ -123,7 +129,10 @@ export default function HoldingsTab({ transactions, currentPrices = {}, onEditTr
             <div className="flex justify-between items-center mb-6 px-2">
                 <h3 className="text-xl font-bold text-white tracking-tight">Portfolio Structure</h3>
                 <button
-                    onClick={() => setIsAddModalOpen(true)}
+                    onClick={() => {
+                        setSelectedTicker('');
+                        setIsAddModalOpen(true);
+                    }}
                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-emerald-900/20"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,22 +222,48 @@ export default function HoldingsTab({ transactions, currentPrices = {}, onEditTr
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <button
-                                                        onClick={() => {
-                                                            const stockTrans = transactions.filter(t => t.ticker === stock.ticker);
-                                                            if (stockTrans.length === 1 && onEditTransaction) {
-                                                                onEditTransaction(stockTrans[0]);
-                                                            } else if (stockTrans.length > 1) {
-                                                                alert('Multiple transactions found. Please go to Transactions tab to edit specific records.');
-                                                            }
-                                                        }}
-                                                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                                        title="Edit"
-                                                    >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                                        </svg>
-                                                    </button>
+                                                    <div className="flex justify-end gap-2">
+                                                        <button
+                                                            onClick={() => {
+                                                                const stockTrans = transactions.filter(t => t.ticker === stock.ticker);
+                                                                if (stockTrans.length === 1 && onEditTransaction) {
+                                                                    onEditTransaction(stockTrans[0]);
+                                                                } else if (stockTrans.length > 1) {
+                                                                    if (onViewTransactions) {
+                                                                        onViewTransactions(stock.ticker);
+                                                                    } else {
+                                                                        alert('Multiple transactions found. Please go to Transactions tab to edit specific records.');
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                            title="Edit Transaction"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                            </svg>
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                const stockTrans = transactions.filter(t => t.ticker === stock.ticker);
+                                                                if (stockTrans.length === 1 && onDeleteTransaction) {
+                                                                    onDeleteTransaction(stockTrans[0]);
+                                                                } else if (stockTrans.length > 1) {
+                                                                    if (onViewTransactions) {
+                                                                        onViewTransactions(stock.ticker);
+                                                                    } else {
+                                                                        alert('Multiple transactions found. Please go to Transactions tab to delete specific records.');
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                                            title="Delete Transaction"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -288,9 +323,13 @@ export default function HoldingsTab({ transactions, currentPrices = {}, onEditTr
 
             <AddStockTransactionModal
                 isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
+                onClose={() => {
+                    setIsAddModalOpen(false);
+                    setSelectedTicker('');
+                }}
                 onSuccess={handleSuccess}
                 portfolioId={portfolioId}
+                initialTicker={selectedTicker}
             />
         </>
     );

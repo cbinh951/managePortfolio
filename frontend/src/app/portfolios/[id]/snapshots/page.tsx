@@ -11,6 +11,8 @@ import AddSnapshotForm from '@/components/snapshots/AddSnapshotForm';
 import SnapshotHistoryTable from '@/components/snapshots/SnapshotHistoryTable';
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatCurrency } from '@/utils/currencyUtils';
+import { TransactionType, Transaction } from '@/types/models';
+import { stockPriceService } from '@/services/stock-price-service';
 
 export default function SnapshotsPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
@@ -23,6 +25,7 @@ export default function SnapshotsPage({ params }: { params: Promise<{ id: string
     const [error, setError] = useState<string | null>(null);
     const [selectedPeriod, setSelectedPeriod] = useState('ALL');
     const [assetType, setAssetType] = useState<AssetType | null>(null);
+    const [liveNAV, setLiveNAV] = useState<number | undefined>(undefined);
 
     useEffect(() => {
         loadData();
@@ -50,6 +53,49 @@ export default function SnapshotsPage({ params }: { params: Promise<{ id: string
             // Determine asset type
             const asset = assetsData.find(a => a.asset_id === portfolioData.asset_id);
             setAssetType(asset?.asset_type || null);
+
+            // Fetch transactions for Live NAV calculation
+            const transactionsData = await apiClient.getPortfolioTransactions(id);
+
+            // Calculate Cash
+            let cash = 0;
+            transactionsData.forEach(t => {
+                const amt = Number(t.amount);
+                if (t.type === TransactionType.DEPOSIT || t.type === TransactionType.WITHDRAW) {
+                    cash += amt;
+                }
+            });
+
+            // Calculate Stock Value
+            let stockVal = 0;
+            const holdingMap = new Map<string, number>();
+
+            transactionsData.forEach(t => {
+                if (t.ticker && t.quantity) {
+                    const qty = Number(t.quantity);
+                    const current = holdingMap.get(t.ticker) || 0;
+                    if (t.type === 'BUY') holdingMap.set(t.ticker, current + qty);
+                    else if (t.type === 'SELL') holdingMap.set(t.ticker, current - qty);
+                }
+            });
+
+            // Fetch live prices if needed
+            const tickers = Array.from(holdingMap.keys());
+            if (tickers.length > 0) {
+                try {
+                    const prices = await stockPriceService.fetchMarketPrices(tickers);
+                    tickers.forEach(ticker => {
+                        const qty = holdingMap.get(ticker) || 0;
+                        if (qty > 0) {
+                            stockVal += qty * (prices[ticker] || 0);
+                        }
+                    });
+                } catch (e) {
+                    console.error('Failed to fetch stock prices for NAV:', e);
+                }
+            }
+
+            setLiveNAV(cash + stockVal);
 
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -199,6 +245,7 @@ export default function SnapshotsPage({ params }: { params: Promise<{ id: string
                             portfolioId={id}
                             assetType={assetType || undefined}
                             onSuccess={handleSnapshotSuccess}
+                            liveNAV={liveNAV}
                         />
                     </div>
                 </div>

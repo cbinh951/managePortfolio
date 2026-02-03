@@ -276,6 +276,7 @@ export class CsvService {
             quantity: t.quantity && t.quantity !== 'null' ? Number(t.quantity) : undefined,
             portfolio_id: t.portfolio_id === 'null' ? undefined : t.portfolio_id,
             cash_account_id: t.cash_account_id === 'null' ? undefined : t.cash_account_id,
+            description: t.description === 'null' ? undefined : t.description,
         })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
 

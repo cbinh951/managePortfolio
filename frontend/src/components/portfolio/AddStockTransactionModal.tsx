@@ -9,9 +9,10 @@ interface AddStockTransactionModalProps {
     onClose: () => void;
     onSuccess: () => void;
     portfolioId: string;
+    initialTicker?: string;
 }
 
-export default function AddStockTransactionModal({ isOpen, onClose, onSuccess, portfolioId }: AddStockTransactionModalProps) {
+export default function AddStockTransactionModal({ isOpen, onClose, onSuccess, portfolioId, initialTicker }: AddStockTransactionModalProps) {
     const { settings } = useSettings();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -20,7 +21,7 @@ export default function AddStockTransactionModal({ isOpen, onClose, onSuccess, p
     const [type, setType] = useState<TransactionType>(TransactionType.BUY);
     const [ticker, setTicker] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-    const [feePercentage, setFeePercentage] = useState('0.15');
+    const [feePercentage, setFeePercentage] = useState('0');
     const [price, setPrice] = useState('');
     const [quantity, setQuantity] = useState('');
     const [note, setNote] = useState('');
@@ -29,15 +30,15 @@ export default function AddStockTransactionModal({ isOpen, onClose, onSuccess, p
         if (isOpen) {
             // Reset form
             setType(TransactionType.BUY);
-            setTicker('');
+            setTicker(initialTicker || '');
             setDate(new Date().toISOString().split('T')[0]);
-            setFeePercentage('0.15');
+            setFeePercentage('0');
             setPrice('');
             setQuantity('');
             setNote('');
             setError(null);
         }
-    }, [isOpen]);
+    }, [isOpen, initialTicker]);
 
     if (!isOpen) return null;
 
@@ -129,8 +130,8 @@ export default function AddStockTransactionModal({ isOpen, onClose, onSuccess, p
                             type="button"
                             onClick={() => setType(TransactionType.BUY)}
                             className={`flex-1 py-2.5 rounded-lg font-medium transition-all ${type === TransactionType.BUY
-                                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                                 }`}
                         >
                             Buy Stock
@@ -139,8 +140,8 @@ export default function AddStockTransactionModal({ isOpen, onClose, onSuccess, p
                             type="button"
                             onClick={() => setType(TransactionType.SELL)}
                             className={`flex-1 py-2.5 rounded-lg font-medium transition-all ${type === TransactionType.SELL
-                                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/20'
-                                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                ? 'bg-red-500 text-white shadow-lg shadow-red-500/20'
+                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                                 }`}
                         >
                             Sell Stock

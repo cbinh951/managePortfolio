@@ -10,9 +10,10 @@ interface AddSnapshotFormProps {
     portfolioId: string;
     assetType?: AssetType;
     onSuccess: () => void;
+    liveNAV?: number;
 }
 
-export default function AddSnapshotForm({ portfolioId, assetType, onSuccess }: AddSnapshotFormProps) {
+export default function AddSnapshotForm({ portfolioId, assetType, onSuccess, liveNAV }: AddSnapshotFormProps) {
     const { settings } = useSettings();
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
@@ -209,6 +210,27 @@ export default function AddSnapshotForm({ portfolioId, assetType, onSuccess }: A
                                 disabled={loading}
                             />
                         </div>
+                        {liveNAV !== undefined && (
+                            <div className="mt-2 flex items-center justify-between">
+                                <p className="text-xs text-slate-500">
+                                    Calculated from holdings: <span className="text-emerald-400 font-medium">{currencySymbol}{liveNAV.toLocaleString()}</span>
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const val = Math.round(liveNAV).toString();
+                                        setFormData(prev => ({ ...prev, nav: val }));
+                                        setDisplayNav(parseInt(val).toLocaleString());
+                                    }}
+                                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                                >
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                    </svg>
+                                    Use Live Value
+                                </button>
+                            </div>
+                        )}
                         <p className="text-xs text-slate-500 mt-1">
                             Enter total value of all positions in this portfolio
                         </p>

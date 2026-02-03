@@ -168,15 +168,44 @@ export default function PortfoliosPage() {
                             Manage your assets, track performance, and analyze growth.
                         </p>
                     </div>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Create Portfolio
-                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={async () => {
+                                try {
+                                    setLoading(true);
+                                    const result = await apiClient.syncStockPrices();
+                                    console.log('Synced:', result.updated);
+                                    await loadPortfoliosData();
+                                    // Also reload metrics
+                                    if (selectedAssetType) {
+                                        await loadFilteredMetrics(selectedAssetType);
+                                    }
+                                } catch (error) {
+                                    console.error('Sync failed', error);
+                                    alert('Failed to sync stock prices');
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }}
+                            className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-blue-400 border border-slate-700 rounded-lg transition-all font-medium flex items-center gap-2 group"
+                            disabled={loading}
+                        >
+                            <svg className={`w-5 h-5 ${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            {loading ? 'Syncing...' : 'Sync Prices'}
+                        </button>
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium flex items-center gap-2"
+                            disabled={loading}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Create Portfolio
+                        </button>
+                    </div>
                 </div>
 
                 {/* Asset Type Filter */}

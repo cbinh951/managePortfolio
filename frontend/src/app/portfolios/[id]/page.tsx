@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiClient } from '@/services/api';
-import { Portfolio, CashAccount, Transaction, Snapshot, PortfolioPerformance, CashBalance, Asset, AssetType, GoldType } from '@/types/models';
+import { Portfolio, CashAccount, Transaction, TransactionType, Snapshot, PortfolioPerformance, CashBalance, Asset, AssetType, GoldType } from '@/types/models';
 import MetricCard from '@/components/portfolio/MetricCard';
 import TabNavigation from '@/components/portfolio/TabNavigation';
 import OverviewTab from '@/components/portfolio/OverviewTab';
@@ -50,6 +50,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
     const [isEditTransactionModalOpen, setIsEditTransactionModalOpen] = useState(false);
     const [isDeleteTransactionModalOpen, setIsDeleteTransactionModalOpen] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+    const [transactionFilter, setTransactionFilter] = useState('');
 
     // Derived state - specific calculations moved up to respect Hook rules
     const isPortfolio = data?.type === 'portfolio';
@@ -99,7 +100,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
         //    transLen: data?.transactions?.length 
         // });
 
-        if (data?.type === 'portfolio' && data.asset?.asset_type === AssetType.STOCK && data.transactions.length > 0) {
+        if (data?.type === 'portfolio' && data.transactions.length > 0) {
             const tickers = Array.from(new Set(data.transactions.filter(t => t.ticker).map(t => t.ticker!)));
 
             console.log('Fetching prices for tickers:', tickers);
@@ -113,9 +114,93 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
         }
     }, [data?.transactions, data?.type, data?.asset]);
 
-    const loadPortfolioData = async () => {
+    // --- Metric Calculations ---
+    const { stockValue, cashBalance, totalPortfolioValue, unrealizedProfit, unrealizedProfitPercent, totalStockCost } = useMemo(() => {
+        if (!data) return { stockValue: 0, cashBalance: 0, totalPortfolioValue: 0, unrealizedProfit: 0, unrealizedProfitPercent: 0, totalStockCost: 0 };
+
+        // 1. Calculate Cash Balance from Transactions
+        // User Request: Only calculate DEPOSIT and WITHDRAW. Exclude BUY/SELL.
+        let cash = 0;
+        data.transactions.forEach(t => {
+            const amt = Number(t.amount);
+
+            if (t.type === TransactionType.DEPOSIT || t.type === TransactionType.WITHDRAW) {
+                cash += amt;
+            }
+            // Exclude BUY, SELL, FEE as per user request
+        });
+
+        // 2. Calculate Stock Value (Market Value of Holdings)
+        const holdingMap = new Map<string, number>();
+        data.transactions.forEach(t => {
+            if (t.ticker && t.quantity) {
+                const qty = Number(t.quantity);
+                const current = holdingMap.get(t.ticker) || 0;
+                if (t.type === 'BUY') holdingMap.set(t.ticker, current + qty);
+                else if (t.type === 'SELL') holdingMap.set(t.ticker, current - qty);
+            }
+        });
+
+        let stockVal = 0;
+        holdingMap.forEach((qty, ticker) => {
+            if (qty > 0) {
+                // If currentPrices is empty (initial load), stockVal is 0. 
+                // But this hook triggers on [currentPrices] so it will update.
+                const price = currentPrices[ticker] || 0;
+                stockVal += qty * price;
+            }
+        });
+
+        // 3. Unrealized P/L
+        let activeCost = 0;
+        const costMap = new Map<string, { qty: number, cost: number }>();
+
+        // Sort by date for accurate average cost
+        const sorted = [...data.transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        sorted.forEach(t => {
+            if (!t.ticker) return;
+            const ticker = t.ticker;
+            if (!costMap.has(ticker)) costMap.set(ticker, { qty: 0, cost: 0 });
+            const h = costMap.get(ticker)!;
+
+            const qty = Number(t.quantity || 0);
+            const amt = Math.abs(Number(t.amount)); // Cost basis uses gross amount
+
+            if (t.type === 'BUY') {
+                h.qty += qty;
+                h.cost += amt;
+            } else if (t.type === 'SELL') {
+                if (h.qty > 0) {
+                    const avg = h.cost / h.qty;
+                    h.cost -= (qty * avg);
+                    h.qty -= qty;
+                }
+            }
+        });
+
+        costMap.forEach((h) => {
+            if (h.qty > 0) activeCost += h.cost;
+        });
+
+        const unrealizedP = stockVal - activeCost;
+        const unrealizedPP = activeCost > 0 ? (unrealizedP / activeCost) * 100 : 0;
+
+        const totalVal = stockVal + cash;
+
+        return {
+            stockValue: stockVal,
+            cashBalance: cash,
+            totalPortfolioValue: totalVal,
+            unrealizedProfit: unrealizedP,
+            unrealizedProfitPercent: unrealizedPP,
+            totalStockCost: activeCost
+        };
+    }, [data, currentPrices]);
+
+    const loadPortfolioData = async (isBackground = false) => {
         try {
-            setLoading(true);
+            if (!isBackground) setLoading(true);
             setError(null);
 
             // Check if ID starts with "CA" to determine if it's a cash account
@@ -161,7 +246,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to load portfolio data');
         } finally {
-            setLoading(false);
+            if (!isBackground) setLoading(false);
         }
     };
 
@@ -184,7 +269,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
 
     const handleRefresh = async () => {
         setRefreshing(true);
-        await loadPortfolioData();
+        await loadPortfolioData(true);
         setRefreshing(false);
     };
 
@@ -197,12 +282,12 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
     };
 
     const handleEditSuccess = () => {
-        loadPortfolioData();
+        loadPortfolioData(true);
         setIsEditModalOpen(false);
     };
 
     const handleTransactionSuccess = () => {
-        loadPortfolioData();
+        loadPortfolioData(true);
         setIsAddTransactionModalOpen(false);
     };
 
@@ -217,19 +302,24 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
     };
 
     const handleEditTransactionSuccess = () => {
-        loadPortfolioData();
+        loadPortfolioData(true);
         setIsEditTransactionModalOpen(false);
         setSelectedTransaction(null);
     };
 
     const handleDeleteTransactionSuccess = () => {
-        loadPortfolioData();
+        loadPortfolioData(true);
         setIsDeleteTransactionModalOpen(false);
         setSelectedTransaction(null);
     };
 
     const handleDeleteTransaction = async (id: string) => {
         await apiClient.deleteTransaction(id);
+    };
+
+    const handleViewTransactions = (ticker: string) => {
+        setTransactionFilter(ticker);
+        setActiveTab('transactions');
     };
 
 
@@ -278,11 +368,13 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
 
     const tabs = [
         { id: 'overview', label: 'Overview', hidden: !isPortfolio },
-        { id: 'holdings', label: 'Holdings', hidden: !isPortfolio || data?.asset?.asset_type !== AssetType.STOCK },
+        { id: 'holdings', label: 'Holdings', hidden: !isPortfolio },
         { id: 'transactions', label: 'Transactions' },
         { id: 'snapshots', label: 'Snapshots', hidden: !isPortfolio },
         { id: 'performance', label: 'Performance', hidden: !isPortfolio },
     ];
+
+
 
     return (
         <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8">
@@ -342,71 +434,57 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                 </div>
 
-                {/* Summary Metrics */}
-                <div className={`grid grid-cols-1 ${isPortfolio ? (goldHoldings ? 'md:grid-cols-3 lg:grid-cols-4' : 'md:grid-cols-3 lg:grid-cols-4') : 'md:grid-cols-3'} gap-6 mb-8`}>
-                    {isPortfolio && (
+                {/* Summary Metrics (New Layout) */}
+                <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 mb-8`}>
+                    {isPortfolio ? (
                         <>
+                            {/* Row 1 */}
                             <MetricCard
-                                label="TOTAL EQUITY"
-                                value={formatCurrency(totalEquity, 'VND', settings.displayCurrency, settings.exchangeRate)}
-                                valueColor="text-blue-400"
-                                subtitle="NAV + Withdrawn"
-                            />
-                            <MetricCard
-                                label="CURRENT NAV"
-                                value={formatCurrency(currentBalance, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                label="TOTAL VALUE"
+                                value={formatCurrency(totalPortfolioValue, 'VND', settings.displayCurrency, settings.exchangeRate)}
                                 valueColor="text-white"
+                                subtitle="Stocks + Cash"
                             />
                             <MetricCard
-                                label="TOTAL INVESTED"
-                                value={formatCurrency(totalInvested, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                label="STOCK VALUE"
+                                value={formatCurrency(stockValue, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                valueColor="text-blue-400"
+                            />
+                            <MetricCard
+                                label="TOTAL STOCK COST"
+                                value={formatCurrency(totalStockCost, 'VND', settings.displayCurrency, settings.exchangeRate)}
                                 valueColor="text-slate-300"
                             />
                             <MetricCard
-                                label="TOTAL WITHDRAWN"
-                                value={formatCurrency(totalWithdrawn, 'VND', settings.displayCurrency, settings.exchangeRate)}
-                                valueColor="text-purple-400"
+                                label="CASH BALANCE"
+                                value={formatCurrency(cashBalance, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                valueColor="text-emerald-400"
+                            />
+
+                            {/* Row 2 - currently fits in same grid as 4th/5th item or allow wrap */}
+                            <MetricCard
+                                label="MARGIN BALANCE"
+                                value="-"
+                                valueColor="text-slate-500"
                             />
                             <MetricCard
-                                label="TOTAL PROFIT"
-                                value={formatCurrency(profit, 'VND', settings.displayCurrency, settings.exchangeRate)}
-                                change={profitPercentage}
-                                trend={profit >= 0 ? 'up' : 'down'}
-                                valueColor={profit >= 0 ? 'text-emerald-400' : 'text-red-400'}
+                                label="UNREALIZED P/L"
+                                value={formatCurrency(unrealizedProfit, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                change={unrealizedProfitPercent}
+                                trend={unrealizedProfit >= 0 ? 'up' : 'down'}
+                                valueColor={unrealizedProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}
                             />
-                            {xirr !== null && (
-                                <MetricCard
-                                    label="XIRR"
-                                    value={`${formatXIRR(xirr)}%`}
-                                    trend={xirr >= 0 ? 'up' : 'down'}
-                                    valueColor={xirr >= 0 ? 'text-emerald-400' : 'text-red-400'}
-                                />
-                            )}
-                            {goldHoldings && (
-                                <>
-                                    <MetricCard
-                                        label="BRANDED GOLD HOLDINGS"
-                                        value={`${goldHoldings.branded.toLocaleString()} chỉ`}
-                                        valueColor="text-yellow-500"
-                                    />
-                                    <MetricCard
-                                        label="PRIVATE GOLD HOLDINGS"
-                                        value={`${goldHoldings.privateGold.toLocaleString()} chỉ`}
-                                        valueColor="text-yellow-600"
-                                    />
-                                </>
-                            )}
                         </>
-                    )}
-                    {!isPortfolio && (
+                    ) : (
                         <>
+                            {/* Cash Account View */}
                             <MetricCard
                                 label="CURRENT BALANCE"
                                 value={formatCurrency(currentBalance, 'VND', settings.displayCurrency, settings.exchangeRate)}
                                 valueColor="text-white"
                             />
                             <MetricCard
-                                label="TOTAL WITHDRAW"
+                                label="TOTAL WITHDRAWN"
                                 value={formatCurrency(
                                     data.transactions
                                         .filter(t => t.type === 'WITHDRAW')
@@ -417,25 +495,22 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                                 )}
                                 valueColor="text-red-400"
                             />
-                            <MetricCard
-                                label="TOTAL TRANSFER"
-                                value={formatCurrency(
-                                    data.transactions
-                                        .filter(t => t.type === 'TRANSFER')
-                                        .reduce((sum, t) => sum + Math.abs(parseFloat(String(t.amount))), 0) / 2, // Divide by 2 because each transfer has 2 records
-                                    'VND',
-                                    settings.displayCurrency,
-                                    settings.exchangeRate
-                                )}
-                                valueColor="text-purple-400"
-                            />
                         </>
                     )}
                 </div>
 
                 {/* Tab Navigation */}
                 <div className="mb-6">
-                    <TabNavigation tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
+                    <div className="mb-6">
+                        <TabNavigation
+                            tabs={tabs}
+                            activeTab={activeTab}
+                            onTabChange={(tab) => {
+                                setActiveTab(tab);
+                                if (tab !== 'transactions') setTransactionFilter('');
+                            }}
+                        />
+                    </div>
                 </div>
 
                 {/* Tab Content */}
@@ -454,6 +529,9 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                             transactions={data.transactions}
                             currentPrices={currentPrices}
                             onEditTransaction={handleEditTransactionClick}
+                            onDeleteTransaction={handleDeleteTransactionClick}
+                            onRefresh={() => loadPortfolioData(true)}
+                            onViewTransactions={handleViewTransactions}
                         />
                     )}
                     {activeTab === 'transactions' && (
@@ -463,6 +541,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                             onEdit={handleEditTransactionClick}
                             onDelete={handleDeleteTransactionClick}
                             onAddTransaction={handleAddTransactionClick}
+                            initialSearch={transactionFilter}
                         />
                     )}
                     {activeTab === 'snapshots' && isPortfolio && (
@@ -511,7 +590,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                     onSuccess={handleTransactionSuccess}
                 />
 
-                {data.asset?.asset_type === AssetType.STOCK ? (
+                {(data.asset?.asset_type === AssetType.STOCK || selectedTransaction?.ticker) ? (
                     <EditStockTransactionModal
                         isOpen={isEditTransactionModalOpen}
                         transaction={selectedTransaction}
