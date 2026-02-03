@@ -270,7 +270,10 @@ export class CsvService {
             type: t.type as TransactionType,
             quantity_chi: t.quantity_chi && t.quantity_chi !== 'null' ? Number(t.quantity_chi) : undefined,
             unit_price: t.unit_price && t.unit_price !== 'null' ? Number(t.unit_price) : undefined,
+            fee: t.fee && t.fee !== 'null' ? Number(t.fee) : undefined,
             gold_type: t.gold_type && t.gold_type !== 'null' ? t.gold_type : undefined,
+            ticker: t.ticker && t.ticker !== 'null' ? t.ticker : undefined,
+            quantity: t.quantity && t.quantity !== 'null' ? Number(t.quantity) : undefined,
             portfolio_id: t.portfolio_id === 'null' ? undefined : t.portfolio_id,
             cash_account_id: t.cash_account_id === 'null' ? undefined : t.cash_account_id,
         })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -298,6 +301,9 @@ export class CsvService {
             gold_type: transaction.gold_type || 'null',
             quantity_chi: transaction.quantity_chi || 'null',
             unit_price: transaction.unit_price || 'null',
+            fee: transaction.fee || 'null',
+            ticker: transaction.ticker || 'null',
+            quantity: transaction.quantity || 'null',
         };
 
         transactions.unshift(newTransaction as Transaction); // Add to beginning for desc sort logic
@@ -325,6 +331,9 @@ export class CsvService {
             gold_type: updates.gold_type !== undefined ? (updates.gold_type || 'null') : current.gold_type,
             quantity_chi: updates.quantity_chi !== undefined ? (updates.quantity_chi || 'null') : current.quantity_chi,
             unit_price: updates.unit_price !== undefined ? (updates.unit_price || 'null') : current.unit_price,
+            fee: updates.fee !== undefined ? (updates.fee || 'null') : current.fee,
+            ticker: updates.ticker !== undefined ? (updates.ticker || 'null') : current.ticker,
+            quantity: updates.quantity !== undefined ? (updates.quantity || 'null') : current.quantity,
         };
 
         allTransactions[index] = updatedRaw;
@@ -336,7 +345,10 @@ export class CsvService {
             type: updatedRaw.type as TransactionType,
             quantity_chi: updatedRaw.quantity_chi && updatedRaw.quantity_chi !== 'null' ? Number(updatedRaw.quantity_chi) : undefined,
             unit_price: updatedRaw.unit_price && updatedRaw.unit_price !== 'null' ? Number(updatedRaw.unit_price) : undefined,
+            fee: updatedRaw.fee && updatedRaw.fee !== 'null' ? Number(updatedRaw.fee) : undefined,
             gold_type: updatedRaw.gold_type && updatedRaw.gold_type !== 'null' ? updatedRaw.gold_type : undefined,
+            ticker: updatedRaw.ticker && updatedRaw.ticker !== 'null' ? updatedRaw.ticker : undefined,
+            quantity: updatedRaw.quantity && updatedRaw.quantity !== 'null' ? Number(updatedRaw.quantity) : undefined,
             portfolio_id: updatedRaw.portfolio_id === 'null' ? undefined : updatedRaw.portfolio_id,
             cash_account_id: updatedRaw.cash_account_id === 'null' ? undefined : updatedRaw.cash_account_id,
         };

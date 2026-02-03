@@ -8,16 +8,19 @@ import { Portfolio, CashAccount, Transaction, Snapshot, PortfolioPerformance, Ca
 import MetricCard from '@/components/portfolio/MetricCard';
 import TabNavigation from '@/components/portfolio/TabNavigation';
 import OverviewTab from '@/components/portfolio/OverviewTab';
+import HoldingsTab from '@/components/portfolio/HoldingsTab';
 import TransactionsTab from '@/components/portfolio/TransactionsTab';
 import SnapshotsTab from '@/components/portfolio/SnapshotsTab';
 import PerformanceTab from '@/components/portfolio/PerformanceTab';
 import EditPortfolioModal from '@/components/portfolio/EditPortfolioModal';
 import AddTransactionModal from '@/components/portfolio/AddTransactionModal';
 import EditTransactionModal from '@/components/transaction/EditTransactionModal';
+import EditStockTransactionModal from '@/components/portfolio/EditStockTransactionModal';
 import DeleteTransactionModal from '@/components/transaction/DeleteTransactionModal';
 import { useSettings } from '@/contexts/SettingsContext';
 import { formatCurrency } from '@/utils/currencyUtils';
 import { formatXIRR } from '@/utils/performanceUtils';
+import { stockPriceService } from '@/services/stock-price-service';
 
 
 interface PortfolioDetailData {
@@ -75,6 +78,8 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
         return { branded, privateGold };
     }, [data]);
 
+    const [currentPrices, setCurrentPrices] = useState<Record<string, number>>({});
+
     useEffect(() => {
         loadPortfolioData();
     }, [id]);
@@ -84,6 +89,29 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
             setActiveTab('transactions');
         }
     }, [data?.type]);
+
+    // Fetch stock prices when transactions change
+    useEffect(() => {
+        // Debug logs
+        // console.log('Checking Stock Price Trigger:', { 
+        //    type: data?.type, 
+        //    assetType: data?.asset?.asset_type, 
+        //    transLen: data?.transactions?.length 
+        // });
+
+        if (data?.type === 'portfolio' && data.asset?.asset_type === AssetType.STOCK && data.transactions.length > 0) {
+            const tickers = Array.from(new Set(data.transactions.filter(t => t.ticker).map(t => t.ticker!)));
+
+            console.log('Fetching prices for tickers:', tickers);
+
+            if (tickers.length > 0) {
+                stockPriceService.fetchMarketPrices(tickers).then(prices => {
+                    console.log('Prices received in Page:', prices);
+                    setCurrentPrices(prices);
+                });
+            }
+        }
+    }, [data?.transactions, data?.type, data?.asset]);
 
     const loadPortfolioData = async () => {
         try {
@@ -108,7 +136,6 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                     snapshots: [],
                 });
             } else {
-                // Fetch as portfolio
                 // Fetch as portfolio
                 // We use Promise.all for parallel fetching
                 const [portfolio, performance, transactions, snapshots, assets] = await Promise.all([
@@ -251,6 +278,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
 
     const tabs = [
         { id: 'overview', label: 'Overview', hidden: !isPortfolio },
+        { id: 'holdings', label: 'Holdings', hidden: !isPortfolio || data?.asset?.asset_type !== AssetType.STOCK },
         { id: 'transactions', label: 'Transactions' },
         { id: 'snapshots', label: 'Snapshots', hidden: !isPortfolio },
         { id: 'performance', label: 'Performance', hidden: !isPortfolio },
@@ -421,6 +449,13 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                             assetType={data.asset?.asset_type}
                         />
                     )}
+                    {activeTab === 'holdings' && (
+                        <HoldingsTab
+                            transactions={data.transactions}
+                            currentPrices={currentPrices}
+                            onEditTransaction={handleEditTransactionClick}
+                        />
+                    )}
                     {activeTab === 'transactions' && (
                         <TransactionsTab
                             transactions={data.transactions}
@@ -476,15 +511,27 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                     onSuccess={handleTransactionSuccess}
                 />
 
-                <EditTransactionModal
-                    isOpen={isEditTransactionModalOpen}
-                    transaction={selectedTransaction}
-                    onClose={() => {
-                        setIsEditTransactionModalOpen(false);
-                        setSelectedTransaction(null);
-                    }}
-                    onSuccess={handleEditTransactionSuccess}
-                />
+                {data.asset?.asset_type === AssetType.STOCK ? (
+                    <EditStockTransactionModal
+                        isOpen={isEditTransactionModalOpen}
+                        transaction={selectedTransaction}
+                        onClose={() => {
+                            setIsEditTransactionModalOpen(false);
+                            setSelectedTransaction(null);
+                        }}
+                        onSuccess={handleEditTransactionSuccess}
+                    />
+                ) : (
+                    <EditTransactionModal
+                        isOpen={isEditTransactionModalOpen}
+                        transaction={selectedTransaction}
+                        onClose={() => {
+                            setIsEditTransactionModalOpen(false);
+                            setSelectedTransaction(null);
+                        }}
+                        onSuccess={handleEditTransactionSuccess}
+                    />
+                )}
 
                 <DeleteTransactionModal
                     isOpen={isDeleteTransactionModalOpen}

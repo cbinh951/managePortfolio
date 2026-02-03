@@ -18,6 +18,7 @@ import {
     createSupabaseMasterRoutes,
     createSupabaseAssetAnalyticsRoutes,
 } from './routes/supabase';
+import stockPriceRoutes from './routes/stock-price-routes';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3001;
@@ -72,6 +73,7 @@ app.use('/api/snapshots', createSupabaseSnapshotRoutes());
 app.use('/api/dashboard', createSupabaseDashboardRoutes());
 app.use('/api/master', createSupabaseMasterRoutes());
 app.use('/api/asset-analytics', createSupabaseAssetAnalyticsRoutes());
+app.use('/api/stock-price', stockPriceRoutes);
 
 // Root route
 app.get('/', (req, res) => {

@@ -28,10 +28,14 @@ export interface CreateTransactionRequest {
     portfolio_id?: string;
     cash_account_id?: string;
     description?: string;
-    // Gold-specific fields
-    gold_type?: any; // Using any for enum compatibility in request
+    // Gold fields
+    gold_type?: string;
     quantity_chi?: number;
     unit_price?: number;
+    // Stock fields
+    ticker?: string;
+    quantity?: number;
+    fee?: number;
 }
 
 export interface CreateSnapshotRequest {

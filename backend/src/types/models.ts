@@ -66,6 +66,7 @@ export interface Transaction {
     date: string;
     type: TransactionType;
     amount: number;
+    fee?: number; // Fee amount (absolute value)
     portfolio_id?: string;
     cash_account_id?: string;
     description?: string;
@@ -73,6 +74,9 @@ export interface Transaction {
     gold_type?: GoldType;
     quantity_chi?: number;  // Quantity in "chỉ" units (1 chỉ = 3.75g)
     unit_price?: number;    // Price per chỉ (optional, for reference)
+    // Stock-specific fields
+    ticker?: string;
+    quantity?: number;
 }
 
 export interface Snapshot {

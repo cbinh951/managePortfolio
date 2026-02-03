@@ -564,6 +564,9 @@ export class SupabaseService {
             portfolio_id: transaction.portfolio_id || null,
             cash_account_id: transaction.cash_account_id || null,
             description: transaction.description || null,
+            ticker: transaction.ticker || null,
+            quantity: transaction.quantity || null,
+            fee: transaction.fee || null,
         };
 
         const { data, error } = await supabase
@@ -581,6 +584,8 @@ export class SupabaseService {
             ...data,
             amount: Number(data.amount),
             type: data.type as TransactionType,
+            quantity: data.quantity ? Number(data.quantity) : undefined,
+            fee: data.fee ? Number(data.fee) : undefined,
         };
     }
 
@@ -606,6 +611,8 @@ export class SupabaseService {
             ...data,
             amount: Number(data.amount),
             type: data.type as TransactionType,
+            quantity: data.quantity ? Number(data.quantity) : undefined,
+            fee: data.fee ? Number(data.fee) : undefined,
         };
     }
 
