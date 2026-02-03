@@ -1,0 +1,18 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3000",
+  "loginUser": "binhpham",
+  "loginPassword": "123456",
+  "executionArgs": {
+    "projectName": "managePortfolio",
+    "projectPath": "c:\\Users\\binh.phamcong\\Documents\\code\\managePortfolio",
+    "testIds": [],
+    "additionalInstruction": "",
+    "envs": {
+      "API_KEY": "sk-user-6CYSqEYV3C0CYqHZcz7zTw6SUv0g7Lh-4X8EI13t-6pNu2ax0ln56n6MhcvsT0eC0x8EFiDiTfk0O_bgsmqfNCoJxkre30lrTX4ju2ipvGOW85Cw15_Xmj7OoXxjfmEq8E0"
+    }
+  },
+  "proxy": "http://b8487180-859e-430b-9a79-e2aa421823fa:wl0crUgRerA1fPp7oRJoGwCWAw77dlSs@tun.testsprite.com:8080"
+}

@@ -1,0 +1,77 @@
+{
+  "tech_stack": [
+    "TypeScript",
+    "Next.js",
+    "React",
+    "TailwindCSS",
+    "Node.js",
+    "Express",
+    "Supabase"
+  ],
+  "features": [
+    {
+      "name": "Authentication",
+      "description": "User login and protected route handling",
+      "files": [
+        "frontend/src/app/login/page.tsx",
+        "frontend/src/components/auth/ProtectedRoute.tsx"
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "description": "Main overview of portfolio performance and assets",
+      "files": [
+        "frontend/src/app/page.tsx",
+        "frontend/src/components/dashboard/DashboardHeader.tsx",
+        "backend/src/routes/supabase/dashboard.ts"
+      ]
+    },
+    {
+      "name": "Portfolio Management",
+      "description": "CRUD operations for portfolios, detail view, and snapshots",
+      "files": [
+        "frontend/src/app/portfolios/page.tsx",
+        "frontend/src/app/portfolios/[id]/page.tsx",
+        "frontend/src/components/portfolios/PortfolioCard.tsx",
+        "backend/src/routes/supabase/portfolios.ts",
+        "backend/src/routes/supabase/snapshots.ts"
+      ]
+    },
+    {
+      "name": "Asset Allocation",
+      "description": "Visualizing asset distribution via charts",
+      "files": [
+        "frontend/src/app/allocation/page.tsx",
+        "frontend/src/components/allocation/AllocationDonutChart.tsx",
+        "frontend/src/components/allocation/AllocationTable.tsx",
+        "backend/src/routes/supabase/asset-analytics.ts"
+      ]
+    },
+    {
+      "name": "Transactions",
+      "description": "Logging and viewing transaction history",
+      "files": [
+        "frontend/src/app/transactions/page.tsx",
+        "backend/src/routes/supabase/transactions.ts"
+      ]
+    },
+    {
+      "name": "Cash Accounts",
+      "description": "Managing cash accounts and balances",
+      "files": [
+        "frontend/src/app/cash-accounts/page.tsx",
+        "frontend/src/components/cash-accounts/CashAccountTable.tsx",
+        "backend/src/routes/supabase/cash-accounts.ts"
+      ]
+    },
+    {
+      "name": "Backend Services",
+      "description": "Core backend logic for data calculation and supabase interaction",
+      "files": [
+        "backend/src/services/calculation-service.ts",
+        "backend/src/services/supabase-service.ts",
+        "backend/src/server.ts"
+      ]
+    }
+  ]
+}

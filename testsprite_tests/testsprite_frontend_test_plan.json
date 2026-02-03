@@ -1,0 +1,395 @@
+[
+  {
+    "id": "TC001",
+    "title": "Successful user login with valid credentials",
+    "description": "Verify that a user can log in successfully with valid username and password and access protected routes.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the login page"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid username/email and password"
+      },
+      {
+        "type": "action",
+        "description": "Click the login button"
+      },
+      {
+        "type": "assertion",
+        "description": "Ensure the user is redirected to the dashboard with access to protected routes"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Login failure with invalid credentials",
+    "description": "Verify that login fails when incorrect username or password is submitted.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the login page"
+      },
+      {
+        "type": "action",
+        "description": "Enter invalid username/email or password"
+      },
+      {
+        "type": "action",
+        "description": "Click the login button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an appropriate error message appears and access to protected routes is denied"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Dashboard displays correct net worth summary",
+    "description": "Verify the dashboard calculates and displays the correct net worth as sum of cash balances and investment NAVs.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login and navigate to the dashboard page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify net worth is displayed as total cash balances plus total investment NAVs"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify values update correctly after portfolio, cash accounts, transactions or snapshots are updated"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Create new investment portfolio",
+    "description": "Verify user can successfully create a new investment portfolio with required details.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to portfolio creation page"
+      },
+      {
+        "type": "action",
+        "description": "Enter portfolio details including name, asset type, platform, and strategy"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form to create portfolio"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new portfolio appears in the portfolios list with correct details"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Edit existing portfolio details",
+    "description": "Verify user can modify details of an existing portfolio and save changes.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the portfolios list and select a portfolio"
+      },
+      {
+        "type": "action",
+        "description": "Edit portfolio details such as strategy or platform"
+      },
+      {
+        "type": "action",
+        "description": "Save changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated details are reflected in the portfolio view"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Delete a portfolio",
+    "description": "Verify user can delete an existing portfolio and the portfolio is removed from the list.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to portfolios list"
+      },
+      {
+        "type": "action",
+        "description": "Select a portfolio and trigger the delete action"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the deletion prompt"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that the portfolio no longer appears in the list"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Create and track cash account balances",
+    "description": "Verify users can create and manage multiple cash accounts and balances update correctly without NAV fluctuations.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to cash accounts page"
+      },
+      {
+        "type": "action",
+        "description": "Create a new cash account with initial balance"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the cash account appears with correct starting balance"
+      },
+      {
+        "type": "action",
+        "description": "Add cash transactions like deposits and withdrawals"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify cash account balance updates accordingly without NAV changes"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Record a buy transaction for an investment portfolio",
+    "description": "Verify buy transaction records correctly reduce cash account and increase investment units, respecting business rules.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to transactions page"
+      },
+      {
+        "type": "action",
+        "description": "Create a buy transaction with correct portfolio, amount, and linked cash account"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify cash account balance decreases by the transaction amount"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify investment portfolio units and cost basis update correctly"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Record a transfer from cash to investment portfolio",
+    "description": "Verify transfer transactions between cash account and investment portfolio adjust balances correctly and follow sign conventions.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Create a transfer transaction specifying source cash account and destination investment portfolio"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify cash balance reduces and investment portfolio balance increases accordingly"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify transaction conforms to cash flow sign conventions"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Create snapshot entry for investment portfolio",
+    "description": "Verify user can add snapshot data recording NAV and prices at specific dates without affecting cash flows.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to portfolio snapshots page"
+      },
+      {
+        "type": "action",
+        "description": "Enter NAV and price data for a specific date"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify snapshot is saved and visible associated with portfolio"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify snapshot entry does not change cash account balances"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Manage physical gold portfolios with branded and private gold",
+    "description": "Verify separate handling and tracking of quantities, prices, and profit & loss for branded and private gold under a physical gold portfolio.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Create a physical gold portfolio"
+      },
+      {
+        "type": "action",
+        "description": "Add entries for branded gold with quantity and unit price"
+      },
+      {
+        "type": "action",
+        "description": "Add separate entries for private gold"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify system tracks quantities and prices separately for branded and private gold"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify profit and loss calculations are accurate and separated by gold type"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Validate asset allocation charts reflect current data",
+    "description": "Verify that allocation charts dynamically update and accurately display proportions of cash and investment assets.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to asset allocation page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify donut and table charts show correct asset distribution based on current portfolio and cash data"
+      },
+      {
+        "type": "action",
+        "description": "Update portfolios and cash accounts"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify charts immediately reflect updated data"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Audit log entry created for financial operations",
+    "description": "Verify system generates audit log entries recording all financial operations such as transactions and portfolio changes for traceability.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Perform a financial operation (e.g., create transaction, update portfolio)"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify audit log entry is created with correct timestamp, user ID, and operation details"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Display error on invalid transaction data",
+    "description": "Verify form validation prevents submission of transactions with invalid or missing required fields and shows user-friendly error messages.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to new transaction form"
+      },
+      {
+        "type": "action",
+        "description": "Enter invalid transaction data (e.g., negative amount for deposit)"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to submit the transaction"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify validation error messages prevent submission and explain issues clearly"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Restricted access blocked for unauthenticated users",
+    "description": "Verify that users who are not logged in cannot access protected routes and are redirected to the login page.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to navigate directly to dashboard, portfolios, transactions or cash accounts pages without login"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is redirected to login page and access is denied"
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Verify backend net worth calculation logic",
+    "description": "Test backend service calculates net worth accurately by summing cash balances and investment NAVs for specific dates.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Invoke backend calculation service with sample portfolios and cash accounts data"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify returned net worth matches expected calculation including all relevant data"
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Business rule validation during transaction creation",
+    "description": "Verify transaction creation enforces business rules such as proper cash flow signs and portfolio boundaries.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Submit a transaction with invalid signs or cross-portfolio inconsistencies"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify transaction creation is rejected with a meaningful error message"
+      }
+    ]
+  }
+]

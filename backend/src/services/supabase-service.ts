@@ -13,6 +13,7 @@ import {
     TransactionType,
     AssetTypeMetrics,
 } from '../types/models';
+// @ts-ignore
 import xirr from 'xirr';
 import { calculateTotalWithdrawn, calculateTotalInvested } from './calculation-service';
 

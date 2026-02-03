@@ -1,0 +1,121 @@
+{
+  "meta": {
+    "project": "Personal Asset Management Web App with Cash",
+    "date": "2026-01-15",
+    "prepared_by": "Software Development Manager"
+  },
+  "product_overview": "A web application that enables individuals to comprehensively manage their personal assets, including both investments and cash holdings. It supports manual input of asset data, transaction history, and portfolio snapshots to provide a clear picture of net worth, asset allocation, and investment performance over time.",
+  "core_goals": [
+    "Provide a unified platform to manage all personal assets including stocks, forex, gold, and cash accounts.",
+    "Enable tracking of actual cash flow between cash accounts and investments.",
+    "Accurately calculate and display net worth by combining cash balances and investment NAVs.",
+    "Support manual data entry for transactions, portfolios, and snapshots with clear separation of cash and investment portfolios.",
+    "Generate insightful dashboards and reports including allocation, profit, and XIRR for investment portfolios.",
+    "Ensure financial accuracy and auditability with backup and audit logs."
+  ],
+  "key_features": [
+    "User authentication and protected routes to secure user data.",
+    "Dashboard offering an overview of net worth, asset allocation, and portfolio performance.",
+    "Portfolio management including CRUD operations and detailed views for investment and cash portfolios.",
+    "Cash account management, tracking balances without NAV fluctuations.",
+    "Transaction management logging all cash flows and investment activity with defined transaction types.",
+    "Snapshot management for recording NAV and prices over time, separate from transactions.",
+    "Asset allocation visualizations including charts contrasting cash and investment proportions.",
+    "Support for physical gold portfolio management with distinct handling of branded and private gold.",
+    "Backend services managing business rules, calculations, and data persistence with Supabase integration."
+  ],
+  "user_flow_summary": [
+    "User logs in and accesses the dashboard to view net worth summary and asset allocation.",
+    "User creates and manages portfolios, defining asset type, platform, and strategy per portfolio.",
+    "User records transactions for deposits, withdrawals, transfers, buys, sells, and fees, ensuring correct cash and investment flow.",
+    "User enters snapshots for investment portfolios to track NAV and for physical gold pricing at specific dates.",
+    "User views detailed portfolio analytics including profit/loss, XIRR, and asset distribution charts.",
+    "User manages cash accounts separately, tracking balances and supporting transfers to and from investment portfolios."
+  ],
+  "validation_criteria": [
+    "System calculates net worth as total cash plus total investment NAV correctly at any point in time.",
+    "Transactions enforce business rules regarding cash flow sign conventions and portfolio boundaries.",
+    "Snapshot entries update portfolio NAV without affecting cash flow calculations.",
+    "Physical gold portfolios track separate prices and quantities for branded vs private gold with accurate P&L computation.",
+    "Dashboard displays accurate and up-to-date summaries and charts reflecting all portfolio and cash data.",
+    "Authentication restricts access to authorized users only, protecting data privacy.",
+    "Audit logs capture financial operations for traceability and compliance."
+  ],
+  "code_summary": {
+    "tech_stack": [
+      "TypeScript",
+      "Next.js",
+      "React",
+      "TailwindCSS",
+      "Node.js",
+      "Express",
+      "Supabase"
+    ],
+    "features": [
+      {
+        "name": "Authentication",
+        "description": "User login and protected route handling",
+        "files": [
+          "frontend/src/app/login/page.tsx",
+          "frontend/src/components/auth/ProtectedRoute.tsx"
+        ]
+      },
+      {
+        "name": "Dashboard",
+        "description": "Main overview of portfolio performance and assets",
+        "files": [
+          "frontend/src/app/page.tsx",
+          "frontend/src/components/dashboard/DashboardHeader.tsx",
+          "backend/src/routes/supabase/dashboard.ts"
+        ]
+      },
+      {
+        "name": "Portfolio Management",
+        "description": "CRUD operations for portfolios, detail view, and snapshots",
+        "files": [
+          "frontend/src/app/portfolios/page.tsx",
+          "frontend/src/app/portfolios/[id]/page.tsx",
+          "frontend/src/components/portfolios/PortfolioCard.tsx",
+          "backend/src/routes/supabase/portfolios.ts",
+          "backend/src/routes/supabase/snapshots.ts"
+        ]
+      },
+      {
+        "name": "Asset Allocation",
+        "description": "Visualizing asset distribution via charts",
+        "files": [
+          "frontend/src/app/allocation/page.tsx",
+          "frontend/src/components/allocation/AllocationDonutChart.tsx",
+          "frontend/src/components/allocation/AllocationTable.tsx",
+          "backend/src/routes/supabase/asset-analytics.ts"
+        ]
+      },
+      {
+        "name": "Transactions",
+        "description": "Logging and viewing transaction history",
+        "files": [
+          "frontend/src/app/transactions/page.tsx",
+          "backend/src/routes/supabase/transactions.ts"
+        ]
+      },
+      {
+        "name": "Cash Accounts",
+        "description": "Managing cash accounts and balances",
+        "files": [
+          "frontend/src/app/cash-accounts/page.tsx",
+          "frontend/src/components/cash-accounts/CashAccountTable.tsx",
+          "backend/src/routes/supabase/cash-accounts.ts"
+        ]
+      },
+      {
+        "name": "Backend Services",
+        "description": "Core backend logic for data calculation and supabase interaction",
+        "files": [
+          "backend/src/services/calculation-service.ts",
+          "backend/src/services/supabase-service.ts",
+          "backend/src/server.ts"
+        ]
+      }
+    ]
+  }
+}
