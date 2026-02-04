@@ -11,7 +11,8 @@ export const stockPriceService = {
                 const symbol = ticker.toUpperCase();
                 console.log(`Fetching ${symbol} from Backend API...`);
 
-                const response = await fetch(`http://localhost:3001/api/stock-price/${symbol}`);
+                const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+                const response = await fetch(`${API_BASE_URL}/api/stock-price/${symbol}`);
 
                 if (!response.ok) {
                     console.error(`Failed to fetch ${ticker}:`, response.statusText);
