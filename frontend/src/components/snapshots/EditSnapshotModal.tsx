@@ -36,8 +36,24 @@ export default function EditSnapshotModal({
 
     useEffect(() => {
         if (snapshot) {
+            // Convert date to YYYY-MM-DD format
+            let dateStr = '';
+            if (snapshot.date) {
+                try {
+                    const date = new Date(snapshot.date);
+                    if (!isNaN(date.getTime())) {
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        dateStr = `${year}-${month}-${day}`;
+                    }
+                } catch {
+                    dateStr = '';
+                }
+            }
+
             setFormData({
-                date: snapshot.date,
+                date: dateStr,
                 nav: snapshot.nav.toString(),
                 branded_gold_price: snapshot.branded_gold_price?.toString() || '',
                 private_gold_price: snapshot.private_gold_price?.toString() || '',

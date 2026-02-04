@@ -186,7 +186,7 @@ export default function OverviewTab({ portfolioName, snapshots = [], transaction
                                 <Line
                                     type="monotone"
                                     dataKey="value"
-                                    name="Portfolio Value"
+                                    name="Current NAV"
                                     stroke="#3b82f6"
                                     strokeWidth={2}
                                     dot={{ fill: '#3b82f6', r: 4 }}

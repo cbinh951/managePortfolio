@@ -20,6 +20,7 @@ import {
     CreateCashAccountRequest,
     CreateTransactionRequest,
     CreateSnapshotRequest,
+    SyncStockPricesResponse,
 } from '@/types/api';
 
 
@@ -261,8 +262,8 @@ class ApiClient {
     }
 
     // Stock Prices
-    async syncStockPrices(): Promise<{ updated: string[] }> {
-        const response = await this.client.post<ApiResponse<{ updated: string[] }>>('/stock-price/sync');
+    async syncStockPrices(): Promise<SyncStockPricesResponse> {
+        const response = await this.client.post<ApiResponse<SyncStockPricesResponse>>('/stock-price/sync');
         if (!response.data.success || !response.data.data) {
             throw new Error(response.data.error || 'Failed to sync stock prices');
         }

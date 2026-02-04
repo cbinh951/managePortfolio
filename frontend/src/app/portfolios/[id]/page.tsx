@@ -119,15 +119,12 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
         if (!data) return { stockValue: 0, cashBalance: 0, totalPortfolioValue: 0, unrealizedProfit: 0, unrealizedProfitPercent: 0, totalStockCost: 0 };
 
         // 1. Calculate Cash Balance from Transactions
-        // User Request: Only calculate DEPOSIT and WITHDRAW. Exclude BUY/SELL.
+        // Sum all transaction amounts. Amounts are signed in the database:
+        // DEPOSIT/SELL/DIVIDEND are positive.
+        // BUY/WITHDRAW are negative.
         let cash = 0;
         data.transactions.forEach(t => {
-            const amt = Number(t.amount);
-
-            if (t.type === TransactionType.DEPOSIT || t.type === TransactionType.WITHDRAW) {
-                cash += amt;
-            }
-            // Exclude BUY, SELL, FEE as per user request
+            cash += Number(t.amount);
         });
 
         // 2. Calculate Stock Value (Market Value of Holdings)
@@ -440,18 +437,18 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                         <>
                             {/* Row 1 */}
                             <MetricCard
-                                label="TOTAL VALUE"
+                                label="NET ASSET VALUE"
                                 value={formatCurrency(totalPortfolioValue, 'VND', settings.displayCurrency, settings.exchangeRate)}
                                 valueColor="text-white"
                                 subtitle="Stocks + Cash"
                             />
                             <MetricCard
-                                label="STOCK VALUE"
+                                label="MARKET VALUE"
                                 value={formatCurrency(stockValue, 'VND', settings.displayCurrency, settings.exchangeRate)}
                                 valueColor="text-blue-400"
                             />
                             <MetricCard
-                                label="TOTAL STOCK COST"
+                                label="COST BASIS"
                                 value={formatCurrency(totalStockCost, 'VND', settings.displayCurrency, settings.exchangeRate)}
                                 valueColor="text-slate-300"
                             />
@@ -461,12 +458,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                                 valueColor="text-emerald-400"
                             />
 
-                            {/* Row 2 - currently fits in same grid as 4th/5th item or allow wrap */}
-                            <MetricCard
-                                label="MARGIN BALANCE"
-                                value="-"
-                                valueColor="text-slate-500"
-                            />
+                            {/* Row 2 */}
                             <MetricCard
                                 label="UNREALIZED P/L"
                                 value={formatCurrency(unrealizedProfit, 'VND', settings.displayCurrency, settings.exchangeRate)}

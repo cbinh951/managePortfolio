@@ -24,12 +24,29 @@ export default function DatePicker({
     placeholder = 'Select date',
     className = '',
 }: DatePickerProps) {
-    // Convert ISO string to Date object
-    const selectedDate = value ? new Date(value + 'T00:00:00') : null;
+    // Convert ISO string to Date object with validation
+    const parseDate = (dateStr: string): Date | null => {
+        if (!dateStr || dateStr.trim() === '') {
+            return null;
+        }
+
+        try {
+            const date = new Date(dateStr + 'T00:00:00');
+            // Check if date is valid
+            if (isNaN(date.getTime())) {
+                return null;
+            }
+            return date;
+        } catch {
+            return null;
+        }
+    };
+
+    const selectedDate = parseDate(value);
 
     // Handle date change
     const handleChange = (date: Date | null) => {
-        if (date) {
+        if (date && !isNaN(date.getTime())) {
             // Convert to ISO string (YYYY-MM-DD)
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');

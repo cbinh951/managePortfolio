@@ -70,107 +70,194 @@ router.post('/sync', async (req: Request, res: Response) => {
     try {
         console.log('🔄 Starting stock price sync...');
         const portfolios = await supabaseService.getAllPortfolios();
-        const updatedPortfolios: string[] = [];
+
+        // Result tracking
+        const syncedPortfolios: Array<{
+            portfolio_id: string;
+            portfolio_name: string;
+            snapshot_id: string;
+            nav: number;
+        }> = [];
+
+        const failedPortfolios: Array<{
+            portfolio_id: string;
+            portfolio_name: string;
+            error: string;
+        }> = [];
+
+        const skippedPortfolios: Array<{
+            portfolio_id: string;
+            portfolio_name: string;
+            reason: string;
+        }> = [];
+
         const priceCache: Record<string, number> = {};
+        let totalTickers = 0;
+        let successfulFetches = 0;
+        let failedFetches = 0;
 
-        // 1. Iterate all portfolios to find those with stock stickers
+        // Process each portfolio individually with error isolation
         for (const portfolio of portfolios) {
-            const transactions = await supabaseService.getTransactionsByPortfolio(portfolio.portfolio_id);
-            if (transactions.length === 0) continue;
+            try {
+                const transactions = await supabaseService.getTransactionsByPortfolio(portfolio.portfolio_id);
 
-            // Calculate Holdings
-            // (Simulate simplified holdings calculation to identify Active Tickers)
-            const holdings: Record<string, number> = {};
-            let hasTickers = false;
-
-            transactions.forEach(t => {
-                if (t.ticker) {
-                    hasTickers = true;
-                    const ticker = t.ticker.toUpperCase();
-                    const qty = Number(t.quantity || 0);
-                    if (t.type === 'BUY' || t.type === 'DEPOSIT') {
-                        holdings[ticker] = (holdings[ticker] || 0) + qty;
-                    } else if (t.type === 'SELL' || t.type === 'WITHDRAW') {
-                        holdings[ticker] = (holdings[ticker] || 0) - qty;
-                    }
+                if (transactions.length === 0) {
+                    skippedPortfolios.push({
+                        portfolio_id: portfolio.portfolio_id,
+                        portfolio_name: portfolio.name,
+                        reason: 'No transactions found'
+                    });
+                    continue;
                 }
-            });
 
-            // If no active holdings or no tickers history, skip
-            const activeTickers = Object.entries(holdings).filter(([_, qty]) => qty > 0.000001).map(([t]) => t);
+                // Calculate Holdings
+                const holdings: Record<string, number> = {};
+                let hasTickers = false;
 
-            // Also check if we should fetch prices even if qty is 0? No, checking active holds mostly.
-            // But user might want to see history. Snapshot focuses on CURRENT value. 
-            // So if holdings are 0, NAV from stocks is 0.
+                transactions.forEach(t => {
+                    if (t.ticker) {
+                        hasTickers = true;
+                        const ticker = t.ticker.toUpperCase();
+                        const qty = Number(t.quantity || 0);
+                        if (t.type === 'BUY' || t.type === 'DEPOSIT') {
+                            holdings[ticker] = (holdings[ticker] || 0) + qty;
+                        } else if (t.type === 'SELL' || t.type === 'WITHDRAW') {
+                            holdings[ticker] = (holdings[ticker] || 0) - qty;
+                        }
+                    }
+                });
 
-            if (Object.keys(holdings).length === 0 && !hasTickers) continue;
+                // Filter active holdings
+                const activeTickers = Object.entries(holdings)
+                    .filter(([_, qty]) => qty > 0.000001)
+                    .map(([t]) => t);
 
-            console.log(`Processing Portfolio ${portfolio.name} (${portfolio.portfolio_id}) - Found tickers: ${activeTickers.join(', ')}`);
+                if (!hasTickers) {
+                    skippedPortfolios.push({
+                        portfolio_id: portfolio.portfolio_id,
+                        portfolio_name: portfolio.name,
+                        reason: 'No stock tickers in portfolio'
+                    });
+                    continue;
+                }
 
-            // 2. Fetch prices for needed tickers
-            let portfolioValue = 0;
+                console.log(`📊 Processing Portfolio: ${portfolio.name} (${portfolio.portfolio_id})`);
+                console.log(`   Active tickers: ${activeTickers.join(', ')}`);
 
-            // Add Cash Balance if any? 
-            // Transactions usually have 'amount'. For STOCK portfolios, typically we track Cash via Buying Power logic or just Net Value.
-            // Simplified: Value = Sum(Qty * Price). 
-            // Note: If the user tracks Cash in the same portfolio, we should add it.
-            // Let's assume standard logic: Value of Stocks + Cash available.
-            // Calculating Cash Available:
-            let cashBalance = 0;
-            transactions.forEach(t => {
-                if (t.type === 'DEPOSIT') cashBalance += t.amount; // amount is positive
-                if (t.type === 'WITHDRAW') cashBalance -= Math.abs(t.amount); // amount is negative usually, but ensure math
-                if (t.type === 'BUY') cashBalance -= Math.abs(t.amount); // outflow
-                if (t.type === 'SELL') cashBalance += Math.abs(t.amount); // inflow
-                // DIVIDEND?
-                if ((t.type as any) === 'DIVIDEND' || (t.type as any) === 'INTEREST') cashBalance += t.amount;
-            });
+                // Calculate portfolio value
+                let portfolioValue = 0;
 
-            // 3. Calculate NAV
-            for (const ticker of activeTickers) {
-                let price = priceCache[ticker];
-                if (price === undefined) {
-                    const latest = await fetchStockPrice(ticker);
-                    if (latest !== null) {
-                        priceCache[ticker] = latest;
-                        price = latest;
+                // Calculate cash balance
+                let cashBalance = 0;
+                transactions.forEach(t => {
+                    // Transaction amounts are already signed correctly:
+                    // - DEPOSIT: positive (money in)
+                    // - WITHDRAW: negative (money out)
+                    // - BUY: negative (money out to buy stocks)
+                    // - SELL: positive (money in from selling stocks)
+                    // - DIVIDEND/INTEREST: positive (money in)
+                    cashBalance += t.amount;
+                });
+
+                // Fetch prices and calculate NAV
+                for (const ticker of activeTickers) {
+                    totalTickers++;
+                    let price = priceCache[ticker];
+
+                    if (price === undefined) {
+                        console.log(`   Fetching price for ${ticker}...`);
+                        const latest = await fetchStockPrice(ticker);
+
+                        // Small delay to avoid rate limiting
+                        await new Promise(resolve => setTimeout(resolve, 100));
+
+                        if (latest !== null) {
+                            priceCache[ticker] = latest;
+                            price = latest;
+                            successfulFetches++;
+                            console.log(`   ✅ ${ticker}: ${price.toLocaleString()} VND`);
+                        } else {
+                            failedFetches++;
+                            console.warn(`   ⚠️  Could not fetch price for ${ticker}, using 0`);
+                            price = 0;
+                        }
                     } else {
-                        // fallback to last known? or 0? 
-                        // logic: if we can't find price, we can't update safely? 
-                        // For now, assume 0 or keep old? Let's use 0 and warn.
-                        console.warn(`Could not fetch price for ${ticker}, using 0`);
-                        price = 0;
+                        console.log(`   💾 Using cached price for ${ticker}: ${price.toLocaleString()} VND`);
                     }
+
+                    const qty = holdings[ticker];
+                    portfolioValue += (qty * price);
                 }
 
-                const qty = holdings[ticker];
-                portfolioValue += (qty * price);
+                const totalNav = Math.max(0, portfolioValue + cashBalance);
+
+                // Debug logging
+                console.log(`📈 Portfolio Value Calculation for ${portfolio.name}:`);
+                console.log(`   Stock Value: ${portfolioValue.toLocaleString()} VND`);
+                console.log(`   Cash Balance: ${cashBalance.toLocaleString()} VND`);
+                console.log(`   Total NAV: ${totalNav.toLocaleString()} VND`);
+
+                // Create Snapshot
+                const snapshot = await supabaseService.createSnapshot({
+                    portfolio_id: portfolio.portfolio_id,
+                    date: new Date().toISOString(),
+                    nav: totalNav
+                });
+
+                console.log(`✅ Created Snapshot for ${portfolio.name}: ${totalNav.toLocaleString()} VND`);
+
+                syncedPortfolios.push({
+                    portfolio_id: portfolio.portfolio_id,
+                    portfolio_name: portfolio.name,
+                    snapshot_id: snapshot.snapshot_id,
+                    nav: totalNav
+                });
+
+            } catch (error) {
+                // Individual portfolio error - log and continue
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                console.error(`❌ Failed to sync portfolio ${portfolio.name}:`, errorMessage);
+
+                failedPortfolios.push({
+                    portfolio_id: portfolio.portfolio_id,
+                    portfolio_name: portfolio.name,
+                    error: errorMessage
+                });
             }
-
-            const totalNav = Math.max(0, portfolioValue + cashBalance); // Should not be negative usually
-
-            // 4. Create Snapshot
-            const snapshot = await supabaseService.createSnapshot({
-                portfolio_id: portfolio.portfolio_id,
-                date: new Date().toISOString(),
-                nav: totalNav
-            });
-
-            console.log(`📸 Created Snapshot for ${portfolio.name}: ${totalNav.toLocaleString()} VND`);
-            updatedPortfolios.push(portfolio.name);
         }
 
-        return res.json({
+        // Prepare response
+        const response = {
             success: true,
             data: {
-                message: `Synced ${updatedPortfolios.length} portfolios`,
-                updated: updatedPortfolios
+                total_portfolios: portfolios.length,
+                synced: syncedPortfolios,
+                failed: failedPortfolios,
+                skipped: skippedPortfolios,
+                price_stats: {
+                    total_tickers: totalTickers,
+                    successful_fetches: successfulFetches,
+                    failed_fetches: failedFetches,
+                    cached: totalTickers - successfulFetches - failedFetches
+                }
             }
-        });
+        };
+
+        console.log(`\n📊 Sync Summary:`);
+        console.log(`   Total Portfolios: ${portfolios.length}`);
+        console.log(`   ✅ Synced: ${syncedPortfolios.length}`);
+        console.log(`   ❌ Failed: ${failedPortfolios.length}`);
+        console.log(`   ⏭️  Skipped: ${skippedPortfolios.length}`);
+        console.log(`   💹 Price Fetches: ${successfulFetches}/${totalTickers} successful\n`);
+
+        return res.json(response);
 
     } catch (error) {
-        console.error('Backend Sync Error:', error);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        console.error('❌ Backend Sync Error:', error);
+        return res.status(500).json({
+            success: false,
+            error: error instanceof Error ? error.message : 'Internal Server Error'
+        });
     }
 });
 

@@ -46,3 +46,29 @@ export interface CreateSnapshotRequest {
     branded_gold_price?: number;
     private_gold_price?: number;
 }
+
+export interface SyncStockPricesResponse {
+    total_portfolios: number;
+    synced: Array<{
+        portfolio_id: string;
+        portfolio_name: string;
+        snapshot_id: string;
+        nav: number;
+    }>;
+    failed: Array<{
+        portfolio_id: string;
+        portfolio_name: string;
+        error: string;
+    }>;
+    skipped: Array<{
+        portfolio_id: string;
+        portfolio_name: string;
+        reason: string;
+    }>;
+    price_stats: {
+        total_tickers: number;
+        successful_fetches: number;
+        failed_fetches: number;
+        cached: number;
+    };
+}

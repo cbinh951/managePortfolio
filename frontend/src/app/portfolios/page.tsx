@@ -174,15 +174,45 @@ export default function PortfoliosPage() {
                                 try {
                                     setLoading(true);
                                     const result = await apiClient.syncStockPrices();
-                                    console.log('Synced:', result.updated);
+                                    console.log('🔄 Sync completed:', result);
+
+                                    // Build detailed message
+                                    let message = `📊 Sync Complete!\n\n`;
+                                    message += `✅ Synced: ${result.synced.length} portfolios\n`;
+
+                                    if (result.failed.length > 0) {
+                                        message += `❌ Failed: ${result.failed.length} portfolios\n`;
+                                        result.failed.forEach(f => {
+                                            message += `  • ${f.portfolio_name}: ${f.error}\n`;
+                                        });
+                                    }
+
+                                    if (result.skipped.length > 0) {
+                                        message += `⏭️  Skipped: ${result.skipped.length} portfolios\n`;
+                                    }
+
+                                    message += `\n💹 Price Statistics:\n`;
+                                    message += `  • Fetched: ${result.price_stats.successful_fetches}/${result.price_stats.total_tickers} tickers\n`;
+
+                                    if (result.price_stats.cached > 0) {
+                                        message += `  • Cached: ${result.price_stats.cached} tickers\n`;
+                                    }
+
+                                    if (result.price_stats.failed_fetches > 0) {
+                                        message += `  • Failed: ${result.price_stats.failed_fetches} tickers\n`;
+                                    }
+
+                                    alert(message);
+
+                                    // Reload data
                                     await loadPortfoliosData();
-                                    // Also reload metrics
                                     if (selectedAssetType) {
                                         await loadFilteredMetrics(selectedAssetType);
                                     }
                                 } catch (error) {
                                     console.error('Sync failed', error);
-                                    alert('Failed to sync stock prices');
+                                    const errorMessage = error instanceof Error ? error.message : 'Failed to sync stock prices';
+                                    alert(`❌ Sync Failed\n\n${errorMessage}`);
                                 } finally {
                                     setLoading(false);
                                 }
