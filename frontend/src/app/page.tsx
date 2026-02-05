@@ -9,6 +9,7 @@ import NetWorthChart from '@/components/charts/NetWorthChart';
 import AllocationChart from '@/components/charts/AllocationChart';
 import { formatXIRR } from '@/utils/performanceUtils';
 import Link from 'next/link';
+import CalculationDetailsModal from '@/components/dashboard/CalculationDetailsModal';
 
 // Icons as SVG components
 const WalletIcon = () => (
@@ -43,6 +44,8 @@ export default function Home() {
   const [portfolioNames, setPortfolioNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [sortConfig, setSortConfig] = useState<{ key: 'name' | 'nav' | 'return'; direction: 'asc' | 'desc' }>({ key: 'nav', direction: 'desc' });
+  const [calculationDetails, setCalculationDetails] = useState<any[]>([]);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   const handleDeletePortfolio = async (id: string) => {
     try {
@@ -61,20 +64,32 @@ export default function Home() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [data, snapshots, transactions, portfoliosList] = await Promise.all([
+        const [data, snapshots, transactions, portfoliosList, assetsList] = await Promise.all([
           apiClient.getDashboard(),
           apiClient.getSnapshots(),
           apiClient.getTransactions(),
-          apiClient.getPortfolios()
+          apiClient.getPortfolios(),
+          apiClient.getAssets()
         ]);
 
         setDashboardData(data);
         setRecentTransactions(transactions.slice(0, 5)); // Top 5 recent
 
-        // Create a map of portfolio ID to name
+        // Create a map of portfolio ID to name and asset_type
         const names: Record<string, string> = {};
+        const portfolioAssets: Record<string, string> = {}; // pid -> asset_type
+
+        // Map asset_id -> asset_type
+        const assetTypes: Record<string, string> = {};
+        assetsList.forEach((a: any) => {
+          assetTypes[a.asset_id] = a.asset_type;
+        });
+
         portfoliosList.forEach((p: any) => {
           names[p.portfolio_id] = p.name;
+          if (p.asset_id && assetTypes[p.asset_id]) {
+            portfolioAssets[p.portfolio_id] = assetTypes[p.asset_id];
+          }
         });
         setPortfolioNames(names);
 
@@ -101,14 +116,23 @@ export default function Home() {
           currentDate.setMonth(currentDate.getMonth() + 1);
         }
 
-        // 3. For each month, calculate total net worth by summing latest NAV of each portfolio
-        const history = timelineMonths.map(monthKey => {
+
+        // 3. For each month, calculate total net worth
+        const history: any[] = [];
+        const details: any[] = [];
+
+        timelineMonths.forEach(monthKey => {
           const [year, month] = monthKey.split('-').map(Number);
           const monthEndDate = new Date(year, month + 1, 0); // End of the month
+          monthEndDate.setHours(23, 59, 59, 999); // Include the entire last day
 
           let totalNav = 0;
+          const monthBreakdown: any[] = [];
 
           portfolioIds.forEach(pid => {
+            // Check asset type
+            const isGold = portfolioAssets[pid] === 'GOLD';
+
             // Find the latest snapshot for this portfolio on or before this month
             const relevantSnapshots = sortedSnapshots.filter(s =>
               s.portfolio_id === pid &&
@@ -116,19 +140,74 @@ export default function Home() {
             );
 
             if (relevantSnapshots.length > 0) {
-              // The last one is the latest because sortedSnapshots is chronological
-              // Ensure nav is treated as a number to avoid string concatenation
-              totalNav += Number(relevantSnapshots[relevantSnapshots.length - 1].nav);
+              const latest = relevantSnapshots[relevantSnapshots.length - 1];
+              let value = 0;
+              let note = '';
+
+              if (isGold) {
+                // GOLD CALCULATION: Sum Trans Quantity * Snapshot Price
+                // 1. Calculate accumulated quantity up to monthEndDate
+                // Filter transactions for this portfolio up to monthEndDate
+                const relevantTransactions = transactions.filter((t: any) =>
+                  t.portfolio_id === pid &&
+                  new Date(t.date) <= monthEndDate &&
+                  t.quantity_chi !== undefined &&
+                  t.quantity_chi !== null
+                );
+
+                let brandedQty = 0;
+                let privateQty = 0;
+
+                relevantTransactions.forEach((t: any) => {
+                  const qty = Number(t.quantity_chi) || 0;
+                  if (t.gold_type === 'BRANDED') {
+                    if (t.type === 'BUY' || t.type === 'DEPOSIT') brandedQty += qty;
+                    else if (t.type === 'SELL' || t.type === 'WITHDRAW') brandedQty -= qty;
+                  } else if (t.gold_type === 'PRIVATE') {
+                    if (t.type === 'BUY' || t.type === 'DEPOSIT') privateQty += qty;
+                    else if (t.type === 'SELL' || t.type === 'WITHDRAW') privateQty -= qty;
+                  }
+                });
+
+                const brandedPrice = Number(latest.branded_gold_price) || 0;
+                const privatePrice = Number(latest.private_gold_price) || 0;
+
+                value = (brandedQty * brandedPrice) + (privateQty * privatePrice);
+
+                note = `Gold: ${brandedQty.toFixed(2)} Branded x ${formatCurrency(brandedPrice, 'VND', 'VND', 1)} + ${privateQty.toFixed(2)} Private x ${formatCurrency(privatePrice, 'VND', 'VND', 1)}`;
+              } else {
+                // STANDARD: Use NAV
+                value = Number(latest.nav);
+              }
+
+              totalNav += value;
+
+              monthBreakdown.push({
+                portfolioName: names[pid] || pid,
+                snapshotDate: latest.date,
+                nav: value,
+                isGold: isGold,
+                note: note // Extra info for Gold
+              });
             }
           });
 
-          return {
-            month: new Date(year, month).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+          const formattedMonth = new Date(year, month).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+
+          history.push({
+            month: formattedMonth,
             value: totalNav
-          };
+          });
+
+          details.push({
+            month: formattedMonth,
+            total: totalNav,
+            breakdown: monthBreakdown
+          });
         });
 
         setNetWorthHistory(history);
+        setCalculationDetails(details);
 
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
@@ -256,7 +335,10 @@ export default function Home() {
             {/* Charts & Summary */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
               <div className="lg:col-span-2">
-                <NetWorthChart data={netWorthHistory} />
+                <NetWorthChart
+                  data={netWorthHistory}
+                  onViewDetails={() => setShowDetailsModal(true)}
+                />
               </div>
               <div className="lg:col-span-1">
                 <AllocationChart
@@ -442,6 +524,13 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      <CalculationDetailsModal
+        isOpen={showDetailsModal}
+        onClose={() => setShowDetailsModal(false)}
+        details={calculationDetails}
+        settings={settings}
+      />
     </main>
   );
 }

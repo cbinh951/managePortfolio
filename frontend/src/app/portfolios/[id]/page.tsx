@@ -365,7 +365,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
 
     const tabs = [
         { id: 'overview', label: 'Overview', hidden: !isPortfolio },
-        { id: 'holdings', label: 'Holdings', hidden: !isPortfolio },
+        { id: 'holdings', label: 'Holdings', hidden: !isPortfolio || data.asset?.asset_type !== AssetType.STOCK },
         { id: 'transactions', label: 'Transactions' },
         { id: 'snapshots', label: 'Snapshots', hidden: !isPortfolio },
         { id: 'performance', label: 'Performance', hidden: !isPortfolio },

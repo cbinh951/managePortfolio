@@ -10,6 +10,7 @@ interface NetWorthChartProps {
         month: string;
         value: number;
     }>;
+    onViewDetails?: () => void;
 }
 
 const EmptyState = () => (
@@ -19,7 +20,7 @@ const EmptyState = () => (
     </div>
 );
 
-export default function NetWorthChart({ data = [] }: NetWorthChartProps) {
+export default function NetWorthChart({ data = [], onViewDetails }: NetWorthChartProps) {
     const { settings } = useSettings();
 
     const CustomTooltip = ({ active, payload }: any) => {
@@ -56,9 +57,30 @@ export default function NetWorthChart({ data = [] }: NetWorthChartProps) {
         <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6 h-full">
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h3 className="text-lg font-semibold text-white">Net Worth Evolution</h3>
+                    <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-white">Net Worth Evolution</h3>
+                        <div className="relative group z-50">
+                            <svg className="w-5 h-5 text-slate-500 hover:text-blue-400 cursor-help transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {/* Improved Tooltip */}
+                            <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900/95 backdrop-blur-md text-slate-200 text-xs p-4 rounded-xl border border-slate-700/50 bottom-full left-0 mb-3 w-72 pointer-events-none shadow-2xl z-50">
+                                <div className="font-semibold text-white mb-1">Calculation Method</div>
+                                <p>Sum of the latest available NAV for each portfolio at the end of each month.</p>
+                                <div className="absolute bottom-0 left-4 translate-y-1/2 rotate-45 w-2 h-2 bg-slate-900 border-r border-b border-slate-700/50"></div>
+                            </div>
+                        </div>
+                    </div>
                     <p className="text-sm text-slate-400">Historical value over time</p>
                 </div>
+                {onViewDetails && (
+                    <button
+                        onClick={onViewDetails}
+                        className="text-xs font-medium text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-1.5 rounded-lg transition-colors border border-blue-500/20"
+                    >
+                        View Details
+                    </button>
+                )}
             </div>
 
             <div className="h-[300px]">
@@ -91,6 +113,6 @@ export default function NetWorthChart({ data = [] }: NetWorthChartProps) {
                     <EmptyState />
                 )}
             </div>
-        </div>
+        </div >
     );
 }
