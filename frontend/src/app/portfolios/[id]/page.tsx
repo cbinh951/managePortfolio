@@ -604,7 +604,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                     onSuccess={handleTransactionSuccess}
                 />
 
-                {(data.asset?.asset_type === AssetType.STOCK || selectedTransaction?.ticker) ? (
+                {(selectedTransaction?.ticker || selectedTransaction?.type === 'BUY' || selectedTransaction?.type === 'SELL') ? (
                     <EditStockTransactionModal
                         isOpen={isEditTransactionModalOpen}
                         transaction={selectedTransaction}
