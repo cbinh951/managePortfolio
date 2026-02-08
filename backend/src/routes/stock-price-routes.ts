@@ -4,37 +4,84 @@ import { SupabaseService } from '../services/supabase-service';
 const router = Router();
 const supabaseService = new SupabaseService();
 
-// Helper to fetch price for a single symbol
-async function fetchStockPrice(symbol: string): Promise<number | null> {
-    try {
-        const url = `https://www.cophieu68.vn/quote/summary.php?id=${symbol.toUpperCase()}`;
-        console.log(`Backend fetching: ${url}`);
+// Helper to fetch price for a single symbol with timeout and retry logic
+async function fetchStockPrice(symbol: string, retries = 3): Promise<number | null> {
+    const TIMEOUT_MS = parseInt(process.env.STOCK_PRICE_TIMEOUT_MS || '5000'); // 5 second default
+    const RETRY_DELAY_MS = parseInt(process.env.STOCK_PRICE_RETRY_DELAY_MS || '1000'); // 1 second default
 
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const url = `https://www.cophieu68.vn/quote/summary.php?id=${symbol.toUpperCase()}`;
+            console.log(`Backend fetching: ${url} (attempt ${attempt}/${retries})`);
+
+            // Create AbortController for timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    },
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    console.warn(`HTTP ${response.status} for ${symbol}, attempt ${attempt}/${retries}`);
+                    if (attempt < retries) {
+                        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                        continue;
+                    }
+                    return null;
+                }
+
+                const html = await response.text();
+                const regex = /<div id="stockname_close"[^>]*>([\d.,]+)<\/div>/;
+                const match = html.match(regex);
+
+                if (match && match[1]) {
+                    let rawVal = parseFloat(match[1].replace(/,/g, ""));
+                    // Convert to absolute VND if needed (assuming < 1000 means k)
+                    if (rawVal < 1000) {
+                        rawVal = rawVal * 1000;
+                    }
+                    console.log(`✅ Successfully fetched ${symbol}: ${rawVal} VND`);
+                    return rawVal;
+                }
+
+                console.warn(`Price not found in HTML for ${symbol}`);
+                return null;
+
+            } catch (fetchError) {
+                clearTimeout(timeoutId);
+
+                // Check if it's a timeout/abort error
+                if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+                    console.warn(`⏱️  Timeout fetching ${symbol} (attempt ${attempt}/${retries})`);
+                } else {
+                    console.warn(`Network error for ${symbol} (attempt ${attempt}/${retries}):`, fetchError);
+                }
+
+                // Retry if we have attempts left
+                if (attempt < retries) {
+                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                    continue;
+                }
+
+                throw fetchError; // Re-throw on last attempt
             }
-        });
 
-        if (!response.ok) return null;
-
-        const html = await response.text();
-        const regex = /<div id="stockname_close"[^>]*>([\d.,]+)<\/div>/;
-        const match = html.match(regex);
-
-        if (match && match[1]) {
-            let rawVal = parseFloat(match[1].replace(/,/g, ""));
-            // Convert to absolute VND if needed (assuming < 1000 means k)
-            if (rawVal < 1000) {
-                rawVal = rawVal * 1000;
+        } catch (error) {
+            if (attempt === retries) {
+                console.error(`❌ Failed to fetch price for ${symbol} after ${retries} attempts:`, error);
+                return null;
             }
-            return rawVal;
         }
-        return null;
-    } catch (error) {
-        console.error(`Error fetching price for ${symbol}:`, error);
-        return null;
     }
+
+    return null;
 }
 
 /**

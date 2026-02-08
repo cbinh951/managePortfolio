@@ -4,35 +4,47 @@ export const stockPriceService = {
         if (tickers.length === 0) return {};
 
         const priceMap: Record<string, number> = {};
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-        const promises = tickers.map(async (ticker) => {
+        // Delay between requests to avoid rate limiting (milliseconds)
+        const DELAY_BETWEEN_REQUESTS = 500; // 500ms = 0.5 seconds
+
+        console.log(`📊 Fetching prices for ${tickers.length} symbols sequentially...`);
+
+        // Process tickers sequentially instead of in parallel
+        for (let i = 0; i < tickers.length; i++) {
+            const ticker = tickers[i];
+
             try {
-                // Call backend API instead of Next.js route
                 const symbol = ticker.toUpperCase();
-                console.log(`Fetching ${symbol} from Backend API...`);
+                console.log(`[${i + 1}/${tickers.length}] Fetching ${symbol} from Backend API...`);
 
-                const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
                 const response = await fetch(`${API_BASE_URL}/api/stock-price/${symbol}`);
 
                 if (!response.ok) {
                     console.error(`Failed to fetch ${ticker}:`, response.statusText);
-                    return;
+                    continue;
                 }
 
                 const data = await response.json();
 
                 if (data.price) {
                     priceMap[data.symbol] = data.price;
-                    console.log(`✅ Fetched ${data.symbol}: ${data.price}`);
+                    console.log(`✅ [${i + 1}/${tickers.length}] Fetched ${data.symbol}: ${data.price.toLocaleString()} VND`);
                 } else {
-                    console.warn(`No price found for ${ticker}`);
+                    console.warn(`⚠️  [${i + 1}/${tickers.length}] No price found for ${ticker}`);
                 }
             } catch (error) {
-                console.error(`Error fetching ${ticker}:`, error);
+                console.error(`❌ [${i + 1}/${tickers.length}] Error fetching ${ticker}:`, error);
             }
-        });
 
-        await Promise.all(promises);
+            // Add delay between requests (except after the last one)
+            if (i < tickers.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
+            }
+        }
+
+        console.log(`✅ Completed fetching ${Object.keys(priceMap).length}/${tickers.length} prices`);
         return priceMap;
     }
 };
