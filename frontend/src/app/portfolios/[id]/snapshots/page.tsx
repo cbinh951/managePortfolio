@@ -82,22 +82,20 @@ export default function SnapshotsPage({ params }: { params: Promise<{ id: string
             // Fetch live prices if needed
             const tickers = Array.from(holdingMap.keys());
             if (tickers.length > 0) {
-                try {
-                    const prices = await stockPriceService.fetchMarketPrices(tickers);
-                    tickers.forEach(ticker => {
-                        const qty = holdingMap.get(ticker) || 0;
-                        if (qty > 0) {
-                            stockVal += qty * (prices[ticker] || 0);
-                        }
-                    });
-                } catch (e) {
-                    console.error('Failed to fetch stock prices for NAV:', e);
-                }
+                console.log('Fetching prices for tickers:', tickers);
+                const prices = await stockPriceService.fetchMarketPrices(tickers);
+                tickers.forEach(ticker => {
+                    const qty = holdingMap.get(ticker) || 0;
+                    if (qty > 0) {
+                        stockVal += qty * (prices[ticker] || 0);
+                    }
+                });
             }
 
             setLiveNAV(cash + stockVal);
 
         } catch (err) {
+            console.error('Error loading snapshot data:', err);
             setError(err instanceof Error ? err.message : 'Failed to load data');
         } finally {
             setLoading(false);
