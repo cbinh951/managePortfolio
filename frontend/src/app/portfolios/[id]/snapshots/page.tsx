@@ -79,15 +79,15 @@ export default function SnapshotsPage({ params }: { params: Promise<{ id: string
                 }
             });
 
-            // Fetch live prices if needed
+            // Fetch cached prices if needed
             const tickers = Array.from(holdingMap.keys());
             if (tickers.length > 0) {
-                console.log('Fetching prices for tickers:', tickers);
-                const prices = await stockPriceService.fetchMarketPrices(tickers);
+                console.log('Fetching cached prices for tickers:', tickers);
+                const result = await stockPriceService.fetchCachedPrices(tickers);
                 tickers.forEach(ticker => {
                     const qty = holdingMap.get(ticker) || 0;
                     if (qty > 0) {
-                        stockVal += qty * (prices[ticker] || 0);
+                        stockVal += qty * (result.prices[ticker] || 0);
                     }
                 });
             }
