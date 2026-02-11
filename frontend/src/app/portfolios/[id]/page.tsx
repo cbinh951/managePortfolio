@@ -55,6 +55,25 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
     // Derived state - specific calculations moved up to respect Hook rules
     const isPortfolio = data?.type === 'portfolio';
 
+    // Determine if asset is Stock type (explicit or implied)
+    const isStockAsset = useMemo(() => {
+
+        if (!data?.asset) return false;
+
+        const type = data.asset.asset_type;
+        const name = data.asset.asset_name?.toLowerCase() || '';
+
+
+        // Explicit type check
+        if (type === AssetType.STOCK) return true;
+
+        // Keyword check for stock-related terms
+        if (name.includes('stock') || name.includes('cổ phiếu') || name.includes('fund') || name.includes('etf')) return true;
+
+        // Only show for stock types - do not default to true for unknown types
+        return false;
+    }, [data?.asset]);
+
     const goldHoldings = useMemo(() => {
         if (!data || data.type !== 'portfolio' || data.asset?.asset_type !== AssetType.GOLD) return null;
 
@@ -110,7 +129,30 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                 });
             }
         }
-    }, [data?.transactions, data?.type, data?.asset]);
+
+        const tickers = Array.from(new Set(data.transactions.filter(t => t.ticker).map(t => t.ticker!)));
+
+        if (tickers.length === 0) {
+            return;
+        }
+
+        console.log('Fetching prices for tickers:', tickers);
+
+        // Set loading state while fetching prices
+        setLoading(true);
+
+        stockPriceService.fetchMarketPrices(tickers)
+            .then(prices => {
+                console.log('Prices received in Page:', prices);
+                setCurrentPrices(prices);
+            })
+            .catch(error => {
+                console.error('Failed to fetch stock prices:', error);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }, [data?.transactions, data?.type]);
 
     // --- Metric Calculations ---
     const { stockValue, cashBalance, totalPortfolioValue, unrealizedProfit, unrealizedProfitPercent, totalStockCost } = useMemo(() => {
@@ -361,9 +403,12 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
     const profitPercentage = isPortfolio ? data!.performance?.profit_percentage || 0 : 0;
     const xirr = isPortfolio ? data!.performance?.xirr || null : null;
 
+    // Determine if asset is Stock type (explicit or implied)
+
+
     const tabs = [
         { id: 'overview', label: 'Overview', hidden: !isPortfolio },
-        { id: 'holdings', label: 'Holdings', hidden: !isPortfolio || data.asset?.asset_type !== AssetType.STOCK },
+        { id: 'holdings', label: 'Holdings', hidden: !isPortfolio || !isStockAsset },
         { id: 'transactions', label: 'Transactions' },
         { id: 'snapshots', label: 'Snapshots', hidden: !isPortfolio },
         { id: 'performance', label: 'Performance', hidden: !isPortfolio },
@@ -603,7 +648,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                     onSuccess={handleTransactionSuccess}
                 />
 
-                {(data.asset?.asset_type === AssetType.STOCK || selectedTransaction?.ticker) ? (
+                {(selectedTransaction?.ticker || selectedTransaction?.type === 'BUY' || selectedTransaction?.type === 'SELL') ? (
                     <EditStockTransactionModal
                         isOpen={isEditTransactionModalOpen}
                         transaction={selectedTransaction}
