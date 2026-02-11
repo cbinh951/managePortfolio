@@ -76,7 +76,7 @@ app.use('/api/master', createSupabaseMasterRoutes());
 app.use('/api/asset-analytics', createSupabaseAssetAnalyticsRoutes());
 app.use('/api/stock-price', stockPriceRoutes);
 app.use('/api/tracking', trackingRoutes);
-
+ 
 // Serve tracking images as static files
 app.use('/tracking_images', express.static('data/tracking_images'));
 
