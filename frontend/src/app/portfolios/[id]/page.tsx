@@ -129,29 +129,6 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                 });
             }
         }
-
-        const tickers = Array.from(new Set(data.transactions.filter(t => t.ticker).map(t => t.ticker!)));
-
-        if (tickers.length === 0) {
-            return;
-        }
-
-        console.log('Fetching prices for tickers:', tickers);
-
-        // Set loading state while fetching prices
-        setLoading(true);
-
-        stockPriceService.fetchMarketPrices(tickers)
-            .then(prices => {
-                console.log('Prices received in Page:', prices);
-                setCurrentPrices(prices);
-            })
-            .catch(error => {
-                console.error('Failed to fetch stock prices:', error);
-            })
-            .finally(() => {
-                setLoading(false);
-            });
     }, [data?.transactions, data?.type]);
 
     // --- Metric Calculations ---
