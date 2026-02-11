@@ -1,8 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { SupabaseService } from '../services/supabase-service';
+import { CsvService } from '../services/csv-service';
+import { StockPrice } from '../types/models';
 
 const router = Router();
 const supabaseService = new SupabaseService();
+const csvService = new CsvService();
 
 // Helper to fetch price for a single symbol
 async function fetchStockPrice(symbol: string): Promise<number | null> {
@@ -58,6 +61,119 @@ router.get('/:symbol', async (req: Request, res: Response) => {
 
     } catch (error) {
         console.error('Backend Stock Price Error:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+/**
+ * GET /api/stock-price/cached/:symbol
+ * Get cached stock price (no live fetch)
+ */
+router.get('/cached/:symbol', async (req: Request, res: Response) => {
+    const { symbol } = req.params;
+
+    if (!symbol) {
+        return res.status(400).json({ error: 'Symbol is required' });
+    }
+
+    try {
+        const cachedPrice = csvService.getStockPriceByTicker(symbol);
+        
+        if (cachedPrice) {
+            return res.json({
+                symbol: cachedPrice.ticker,
+                price: cachedPrice.price,
+                updated_at: cachedPrice.updated_at,
+                found: true
+            });
+        } else {
+            return res.json({
+                symbol: symbol.toUpperCase(),
+                price: null,
+                found: false,
+                message: 'Price not in cache. Click Sync Prices to update.'
+            });
+        }
+
+    } catch (error) {
+        console.error('Backend Cached Price Error:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+/**
+ * POST /api/stock-price/cached/batch
+ * Get multiple cached stock prices
+ * Body: { tickers: string[] }
+ */
+router.post('/cached/batch', async (req: Request, res: Response) => {
+    const { tickers } = req.body;
+
+    if (!Array.isArray(tickers)) {
+        return res.status(400).json({ error: 'Tickers array is required' });
+    }
+
+    try {
+        const allPrices = csvService.getAllStockPrices();
+        const priceMap: Record<string, { price: number; updated_at: string }> = {};
+        const missing: string[] = [];
+
+        tickers.forEach(ticker => {
+            const upperTicker = ticker.toUpperCase();
+            const cached = allPrices.find(p => p.ticker === upperTicker);
+            
+            if (cached) {
+                priceMap[upperTicker] = {
+                    price: cached.price,
+                    updated_at: cached.updated_at
+                };
+            } else {
+                missing.push(upperTicker);
+            }
+        });
+
+        return res.json({
+            prices: priceMap,
+            missing,
+            cached_count: Object.keys(priceMap).length,
+            missing_count: missing.length
+        });
+
+    } catch (error) {
+        console.error('Backend Batch Cached Price Error:', error);
+        return res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+/**
+ * GET /api/stock-price/cached/last-sync
+ * Get timestamp of last price sync
+ */
+router.get('/cached/last-sync', async (req: Request, res: Response) => {
+    try {
+        const allPrices = csvService.getAllStockPrices();
+        
+        if (allPrices.length === 0) {
+            return res.json({
+                last_sync: null,
+                ticker_count: 0
+            });
+        }
+
+        // Find the most recent timestamp
+        const lastSync = allPrices.reduce((latest, price) => {
+            const priceTime = new Date(price.updated_at).getTime();
+            const latestTime = latest ? new Date(latest).getTime() : 0;
+            return priceTime > latestTime ? price.updated_at : latest;
+        }, allPrices[0].updated_at);
+
+        return res.json({
+            last_sync: lastSync,
+            ticker_count: allPrices.length
+        });
+
+    } catch (error) {
+        console.error('Backend Last Sync Error:', error);
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 });
@@ -224,6 +340,18 @@ router.post('/sync', async (req: Request, res: Response) => {
                     error: errorMessage
                 });
             }
+        }
+
+        // Save all fetched prices to CSV cache
+        const stockPrices: StockPrice[] = Object.entries(priceCache).map(([ticker, price]) => ({
+            ticker: ticker.toUpperCase(),
+            price,
+            updated_at: new Date().toISOString()
+        }));
+
+        if (stockPrices.length > 0) {
+            csvService.saveStockPrices(stockPrices);
+            console.log(`💾 Saved ${stockPrices.length} stock prices to cache`);
         }
 
         // Prepare response

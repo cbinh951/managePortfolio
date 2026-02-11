@@ -89,6 +89,12 @@ export interface Snapshot {
     private_gold_price?: number;  // Price per chỉ for private gold
 }
 
+export interface StockPrice {
+    ticker: string;
+    price: number;
+    updated_at: string;  // ISO timestamp of when price was fetched
+}
+
 // Calculated types
 export interface PortfolioPerformance {
     portfolio_id: string;

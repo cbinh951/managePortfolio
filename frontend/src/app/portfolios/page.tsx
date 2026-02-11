@@ -58,10 +58,12 @@ export default function PortfoliosPage() {
     const [selectedAssetType, setSelectedAssetType] = useState('ALL');
     const [filteredMetrics, setFilteredMetrics] = useState<AssetTypeMetrics | null>(null);
     const [metricsLoading, setMetricsLoading] = useState(false);
+    const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
     useEffect(() => {
         loadPortfoliosData();
         loadFilteredMetrics(selectedAssetType);
+        fetchLastSyncTime();
     }, []);
 
     const loadPortfoliosData = async () => {
@@ -153,6 +155,19 @@ export default function PortfoliosPage() {
         loadFilteredMetrics(assetType);
     };
 
+    const fetchLastSyncTime = async () => {
+        try {
+            const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+            const response = await fetch(`${API_BASE_URL}/api/stock-price/cached/last-sync`);
+            if (response.ok) {
+                const data = await response.json();
+                setLastSyncTime(data.last_sync);
+            }
+        } catch (error) {
+            console.error('Failed to fetch last sync time:', error);
+        }
+    };
+
     const handleCreateSuccess = () => {
         loadPortfoliosData();
     };
@@ -167,6 +182,14 @@ export default function PortfoliosPage() {
                         <p className="text-slate-400">
                             Manage your assets, track performance, and analyze growth.
                         </p>
+                        {lastSyncTime && (
+                            <p className="text-slate-500 text-sm mt-2 flex items-center gap-2">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Last price sync: {new Date(lastSyncTime).toLocaleString()}
+                            </p>
+                        )}
                     </div>
                     <div className="flex gap-3">
                         <button
@@ -209,6 +232,9 @@ export default function PortfoliosPage() {
                                     if (selectedAssetType) {
                                         await loadFilteredMetrics(selectedAssetType);
                                     }
+                                    
+                                    // Update last sync time
+                                    await fetchLastSyncTime();
                                 } catch (error) {
                                     console.error('Sync failed', error);
                                     const errorMessage = error instanceof Error ? error.message : 'Failed to sync stock prices';

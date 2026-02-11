@@ -9,6 +9,7 @@ import {
     CashAccount,
     Transaction,
     Snapshot,
+    StockPrice,
     TransactionType,
     AssetType,
     GoldType,
@@ -24,6 +25,7 @@ const FILES = {
     CASH_ACCOUNTS: 'cash_accounts.csv',
     TRANSACTIONS: 'transactions.csv',
     SNAPSHOTS: 'snapshots.csv',
+    STOCK_PRICES: 'stock_prices.csv',
 };
 
 export class CsvService {
@@ -473,5 +475,67 @@ export class CsvService {
         if (strategies.length === initialLength) return false;
         this.writeCsv(FILES.STRATEGIES, strategies);
         return true;
+    }
+
+    // ============================================
+    // STOCK PRICES CACHE
+    // ============================================
+    getAllStockPrices(): StockPrice[] {
+        const prices = this.readCsv<StockPrice>(FILES.STOCK_PRICES);
+        return prices.map(p => ({
+            ticker: String(p.ticker).toUpperCase(),
+            price: Number(p.price),
+            updated_at: String(p.updated_at)
+        }));
+    }
+
+    getStockPriceByTicker(ticker: string): StockPrice | null {
+        const prices = this.getAllStockPrices();
+        const upperTicker = ticker.toUpperCase();
+        return prices.find(p => p.ticker === upperTicker) || null;
+    }
+
+    saveStockPrices(prices: StockPrice[]): void {
+        // Read existing prices first
+        const existingPrices = this.getAllStockPrices();
+        const priceMap = new Map<string, StockPrice>();
+        
+        // Add existing prices to map
+        existingPrices.forEach(p => {
+            priceMap.set(p.ticker, p);
+        });
+        
+        // Update/add new prices (this overwrites existing tickers with new data)
+        prices.forEach(p => {
+            priceMap.set(p.ticker.toUpperCase(), {
+                ticker: p.ticker.toUpperCase(),
+                price: p.price,
+                updated_at: p.updated_at
+            });
+        });
+        
+        // Convert map back to array and write
+        const mergedPrices = Array.from(priceMap.values());
+        this.writeCsv(FILES.STOCK_PRICES, mergedPrices);
+    }
+
+    updateStockPrice(ticker: string, price: number): void {
+        const prices = this.getAllStockPrices();
+        const upperTicker = ticker.toUpperCase();
+        const index = prices.findIndex(p => p.ticker === upperTicker);
+        
+        const updatedPrice: StockPrice = {
+            ticker: upperTicker,
+            price,
+            updated_at: new Date().toISOString()
+        };
+
+        if (index !== -1) {
+            prices[index] = updatedPrice;
+        } else {
+            prices.push(updatedPrice);
+        }
+
+        this.saveStockPrices(prices);
     }
 }
