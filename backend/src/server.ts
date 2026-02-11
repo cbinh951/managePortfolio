@@ -19,6 +19,7 @@ import {
     createSupabaseAssetAnalyticsRoutes,
 } from './routes/supabase';
 import stockPriceRoutes from './routes/stock-price-routes';
+import trackingRoutes from './routes/tracking-routes';
 
 const app: Express = express();
 const PORT = process.env.PORT || 3001;
@@ -74,6 +75,10 @@ app.use('/api/dashboard', createSupabaseDashboardRoutes());
 app.use('/api/master', createSupabaseMasterRoutes());
 app.use('/api/asset-analytics', createSupabaseAssetAnalyticsRoutes());
 app.use('/api/stock-price', stockPriceRoutes);
+app.use('/api/tracking', trackingRoutes);
+
+// Serve tracking images as static files
+app.use('/tracking_images', express.static('data/tracking_images'));
 
 // Root route
 app.get('/', (req, res) => {

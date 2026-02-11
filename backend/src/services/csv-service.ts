@@ -10,6 +10,8 @@ import {
     Transaction,
     Snapshot,
     StockPrice,
+    TrackingList,
+    TrackingStock,
     TransactionType,
     AssetType,
     GoldType,
@@ -26,6 +28,8 @@ const FILES = {
     TRANSACTIONS: 'transactions.csv',
     SNAPSHOTS: 'snapshots.csv',
     STOCK_PRICES: 'stock_prices.csv',
+    TRACKING_LISTS: 'tracking_lists.csv',
+    TRACKING_STOCKS: 'tracking_stocks.csv',
 };
 
 export class CsvService {
@@ -537,5 +541,183 @@ export class CsvService {
         }
 
         this.saveStockPrices(prices);
+    }
+
+    updateStockPrices(prices: Array<{ ticker: string; price: number; last_updated: string }>): void {
+        // Convert to StockPrice format and save
+        const stockPrices: StockPrice[] = prices.map(p => ({
+            ticker: p.ticker.toUpperCase(),
+            price: p.price,
+            updated_at: p.last_updated
+        }));
+        this.saveStockPrices(stockPrices);
+    }
+
+    // ============================================
+    // TRACKING LISTS
+    // ============================================
+    getAllTrackingLists(): TrackingList[] {
+        const lists = this.readCsv<TrackingList>(FILES.TRACKING_LISTS);
+        return lists.sort((a: any, b: any) =>
+            new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        );
+    }
+
+    getTrackingListById(list_id: string): TrackingList | null {
+        const lists = this.getAllTrackingLists();
+        return lists.find(l => l.list_id === list_id) || null;
+    }
+
+    createTrackingList(list: Omit<TrackingList, 'list_id' | 'created_at' | 'updated_at'>): TrackingList {
+        const lists = this.getAllTrackingLists();
+        const list_id = `TL${Date.now()}${Math.floor(Math.random() * 10000)}`;
+        const newList: TrackingList = {
+            ...list,
+            list_id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+        lists.push(newList);
+        this.writeCsv(FILES.TRACKING_LISTS, lists);
+        return newList;
+    }
+
+    updateTrackingList(list_id: string, updates: Partial<TrackingList>): TrackingList | null {
+        const lists = this.getAllTrackingLists();
+        const index = lists.findIndex(l => l.list_id === list_id);
+        if (index === -1) return null;
+
+        const updated = {
+            ...lists[index],
+            ...updates,
+            updated_at: new Date().toISOString()
+        };
+        lists[index] = updated;
+        this.writeCsv(FILES.TRACKING_LISTS, lists);
+        return updated;
+    }
+
+    deleteTrackingList(list_id: string): boolean {
+        const lists = this.getAllTrackingLists();
+        const index = lists.findIndex(l => l.list_id === list_id);
+        if (index === -1) return false;
+
+        // Delete related stocks
+        this.deleteTrackingStocksByList(list_id);
+
+        lists.splice(index, 1);
+        this.writeCsv(FILES.TRACKING_LISTS, lists);
+        return true;
+    }
+
+    // ============================================
+    // TRACKING STOCKS
+    // ============================================
+    getAllTrackingStocks(): TrackingStock[] {
+        const stocks = this.readCsv<any>(FILES.TRACKING_STOCKS);
+        return stocks.map(s => ({
+            ...s,
+            stop_buy_price: Number(s.stop_buy_price),
+            sell_target_price: Number(s.sell_target_price),
+            target_profit_percent: s.target_profit_percent ? Number(s.target_profit_percent) : undefined,
+            row_order: Number(s.row_order || 0),
+            meeting_date: s.meeting_date === 'null' ? undefined : s.meeting_date,
+            continue_accumulation_date: s.continue_accumulation_date === 'null' ? undefined : s.continue_accumulation_date,
+            notes: s.notes === 'null' ? undefined : s.notes,
+        })).sort((a, b) => a.row_order - b.row_order);
+    }
+
+    getTrackingStocksByList(list_id: string): TrackingStock[] {
+        return this.getAllTrackingStocks().filter(s => s.list_id === list_id);
+    }
+
+    getTrackingStockById(stock_id: string): TrackingStock | null {
+        const stocks = this.getAllTrackingStocks();
+        return stocks.find(s => s.stock_id === stock_id) || null;
+    }
+
+    createTrackingStock(stock: Omit<TrackingStock, 'stock_id'>): TrackingStock {
+        const stocks = this.readCsv<any>(FILES.TRACKING_STOCKS);
+        const stock_id = `TS${Date.now()}${Math.floor(Math.random() * 10000)}`;
+
+        const newStock: any = {
+            ...stock,
+            stock_id,
+            meeting_date: stock.meeting_date || 'null',
+            target_profit_percent: stock.target_profit_percent || 'null',
+            notes: stock.notes || 'null',
+        };
+
+        stocks.push(newStock);
+        this.writeCsv(FILES.TRACKING_STOCKS, stocks);
+
+        return {
+            ...stock,
+            stock_id,
+        };
+    }
+
+    createTrackingStocksBatch(stocks: Omit<TrackingStock, 'stock_id'>[]): TrackingStock[] {
+        const existingStocks = this.readCsv<any>(FILES.TRACKING_STOCKS);
+        const newStocks: TrackingStock[] = [];
+
+        stocks.forEach(stock => {
+            const stock_id = `TS${Date.now()}${Math.floor(Math.random() * 10000)}`;
+            const newStock: any = {
+                ...stock,
+                stock_id,
+                meeting_date: stock.meeting_date || 'null',
+                target_profit_percent: stock.target_profit_percent || 'null',
+                notes: stock.notes || 'null',
+            };
+            existingStocks.push(newStock);
+            newStocks.push({ ...stock, stock_id });
+        });
+
+        this.writeCsv(FILES.TRACKING_STOCKS, existingStocks);
+        return newStocks;
+    }
+
+    updateTrackingStock(stock_id: string, updates: Partial<TrackingStock>): TrackingStock | null {
+        const allStocks = this.readCsv<any>(FILES.TRACKING_STOCKS);
+        const index = allStocks.findIndex(s => s.stock_id === stock_id);
+        if (index === -1) return null;
+
+        const current = allStocks[index];
+        const updatedRaw = {
+            ...current,
+            ...updates,
+            meeting_date: updates.meeting_date !== undefined ? (updates.meeting_date || 'null') : current.meeting_date,
+            target_profit_percent: updates.target_profit_percent !== undefined ? (updates.target_profit_percent || 'null') : current.target_profit_percent,
+            notes: updates.notes !== undefined ? (updates.notes || 'null') : current.notes,
+        };
+
+        allStocks[index] = updatedRaw;
+        this.writeCsv(FILES.TRACKING_STOCKS, allStocks);
+
+        return {
+            ...updatedRaw,
+            stop_buy_price: Number(updatedRaw.stop_buy_price),
+            sell_target_price: Number(updatedRaw.sell_target_price),
+            target_profit_percent: updatedRaw.target_profit_percent && updatedRaw.target_profit_percent !== 'null' ? Number(updatedRaw.target_profit_percent) : undefined,
+            row_order: Number(updatedRaw.row_order || 0),
+            meeting_date: updatedRaw.meeting_date === 'null' ? undefined : updatedRaw.meeting_date,
+            notes: updatedRaw.notes === 'null' ? undefined : updatedRaw.notes,
+        };
+    }
+
+    deleteTrackingStock(stock_id: string): boolean {
+        let stocks = this.readCsv<any>(FILES.TRACKING_STOCKS);
+        const initialLength = stocks.length;
+        stocks = stocks.filter(s => s.stock_id !== stock_id);
+        if (stocks.length === initialLength) return false;
+        this.writeCsv(FILES.TRACKING_STOCKS, stocks);
+        return true;
+    }
+
+    private deleteTrackingStocksByList(list_id: string): void {
+        let stocks = this.readCsv<any>(FILES.TRACKING_STOCKS);
+        stocks = stocks.filter(s => s.list_id !== list_id);
+        this.writeCsv(FILES.TRACKING_STOCKS, stocks);
     }
 }

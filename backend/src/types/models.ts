@@ -170,3 +170,41 @@ export interface PerformanceChartData {
     hasData: boolean;
     message?: string;  // For edge cases like "No snapshots available"
 }
+
+// Stock Accumulation Tracking Types
+export enum TrackingStockStatus {
+    BUY_ZONE = 'BUY_ZONE',
+    NEAR_LIMIT = 'NEAR_LIMIT',
+    OVER_LIMIT = 'OVER_LIMIT',
+    IN_RANGE = 'IN_RANGE',
+}
+
+export interface TrackingList {
+    list_id: string;
+    name: string;
+    created_at: string;
+    updated_at: string;
+    image_url?: string;
+}
+
+export interface TrackingStock {
+    stock_id: string;
+    list_id: string;
+    ticker: string;
+    company_name: string;
+    meeting_date?: string;  // Ngày chốt lời gần nhất
+    continue_accumulation_date?: string;  // Tích sản tiếp tục
+    stop_buy_price: number;  // Giá thấm khảo ngừng mua
+    sell_target_price: number;  // Giá thấm khảo bán
+    target_profit_percent?: number;  // Tỷ suất cổ tức
+    notes?: string;
+    row_order: number;
+}
+
+export interface TrackingStockWithStatus extends TrackingStock {
+    current_price: number | null;
+    price_updated_at?: string;
+    status: TrackingStockStatus;
+    potential_profit: number;  // Calculated: (sell_target - current) / current * 100
+    is_attractive: boolean;  // Profit > 20%
+}

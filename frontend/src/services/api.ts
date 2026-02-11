@@ -13,6 +13,9 @@ import {
     AssetTypeMetrics,
     TimeRange,
     PerformanceChartData,
+    TrackingList,
+    TrackingStock,
+    TrackingListWithDetails,
 } from '@/types/models';
 import {
     ApiResponse,
@@ -350,6 +353,139 @@ class ApiClient {
         console.log('📊 Received metrics:', response.data.data);
         if (!response.data.success || !response.data.data) {
             throw new Error(response.data.error || 'Failed to fetch asset type metrics');
+        }
+        return response.data.data;
+    }
+
+    // Tracking Lists
+    async getTrackingLists(): Promise<TrackingList[]> {
+        const response = await this.client.get<ApiResponse<TrackingList[]>>('/tracking');
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch tracking lists');
+        }
+        return response.data.data;
+    }
+
+    async getTrackingList(id: string): Promise<TrackingListWithDetails> {
+        const response = await this.client.get<ApiResponse<TrackingListWithDetails>>(`/tracking/${id}`);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to fetch tracking list');
+        }
+        return response.data.data;
+    }
+
+    async createTrackingList(data: { name: string }): Promise<TrackingList> {
+        const response = await this.client.post<ApiResponse<TrackingList>>('/tracking', data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to create tracking list');
+        }
+        return response.data.data;
+    }
+
+    async updateTrackingList(id: string, data: { name: string }): Promise<TrackingList> {
+        const response = await this.client.put<ApiResponse<TrackingList>>(`/tracking/${id}`, data);
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to update tracking list');
+        }
+        return response.data.data;
+    }
+
+    async deleteTrackingList(id: string): Promise<void> {
+        const response = await this.client.delete<ApiResponse<void>>(`/tracking/${id}`);
+        if (!response.data.success) {
+            throw new Error(response.data.error || 'Failed to delete tracking list');
+        }
+    }
+
+    // DISABLED: Upload Excel is preferred for better accuracy
+    /*
+    async uploadTrackingImage(id: string, imageFile: File): Promise<{ image_url: string; message?: string }> {
+        const formData = new FormData();
+        formData.append('image', imageFile);
+
+        const response = await this.client.post<ApiResponse<{ image_url: string; message?: string }>>(
+            `/tracking/${id}/upload-image`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            }
+        );
+
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to upload image');
+        }
+        return response.data.data;
+    }
+    */
+
+    async uploadTrackingExcel(id: string, excelFile: File): Promise<{ stocks_created: number; message?: string }> {
+        const formData = new FormData();
+        formData.append('file', excelFile);
+
+        const response = await this.client.post<ApiResponse<{ stocks_created: number; message?: string }>>(
+            `/tracking/${id}/upload-excel`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            }
+        );
+
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to upload Excel file');
+        }
+        return response.data.data;
+    }
+
+    async addTrackingStocks(
+        listId: string,
+        stocks: Array<{
+            ticker: string;
+            company_name: string;
+            meeting_date?: string;
+            stop_buy_price: number;
+            sell_target_price: number;
+            target_profit_percent?: number;
+            notes?: string;
+        }>
+    ): Promise<TrackingStock[]> {
+        const response = await this.client.post<ApiResponse<TrackingStock[]>>(
+            `/tracking/${listId}/stocks`,
+            { stocks }
+        );
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to add stocks');
+        }
+        return response.data.data;
+    }
+
+    async updateTrackingStock(stockId: string, updates: Partial<TrackingStock>): Promise<TrackingStock> {
+        const response = await this.client.put<ApiResponse<TrackingStock>>(
+            `/tracking/stocks/${stockId}`,
+            updates
+        );
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to update stock');
+        }
+        return response.data.data;
+    }
+
+    async deleteTrackingStock(stockId: string): Promise<void> {
+        const response = await this.client.delete<ApiResponse<void>>(`/tracking/stocks/${stockId}`);
+        if (!response.data.success) {
+            throw new Error(response.data.error || 'Failed to delete stock');
+        }
+    }
+
+    async syncTrackingPrices(listId: string): Promise<{ total_stocks: number; successful: number; failed: number; message: string }> {
+        const response = await this.client.post<ApiResponse<{ total_stocks: number; successful: number; failed: number; message: string }>>(
+            `/tracking/${listId}/sync-prices`
+        );
+        if (!response.data.success || !response.data.data) {
+            throw new Error(response.data.error || 'Failed to sync prices');
         }
         return response.data.data;
     }
