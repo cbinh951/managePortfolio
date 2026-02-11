@@ -28,7 +28,7 @@ export class SupabaseService {
 
     async getAllAssets(): Promise<Asset[]> {
         if (!isSupabaseEnabled()) {
-            return csvService.getAllAssets();
+            return await csvService.getAllAssets();
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -46,7 +46,7 @@ export class SupabaseService {
 
     async createAsset(asset: Omit<Asset, 'asset_id'>): Promise<Asset> {
         if (!isSupabaseEnabled()) {
-            return csvService.createAsset(asset);
+            return await csvService.createAsset(asset);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -67,7 +67,7 @@ export class SupabaseService {
 
     async updateAsset(asset_id: string, updates: Partial<Asset>): Promise<Asset | null> {
         if (!isSupabaseEnabled()) {
-            return csvService.updateAsset(asset_id, updates);
+            return await csvService.updateAsset(asset_id, updates);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -87,7 +87,7 @@ export class SupabaseService {
 
     async deleteAsset(asset_id: string): Promise<boolean> {
         if (!isSupabaseEnabled()) {
-            return csvService.deleteAsset(asset_id);
+            return await csvService.deleteAsset(asset_id);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -109,7 +109,7 @@ export class SupabaseService {
 
     async getAllPlatforms(): Promise<Platform[]> {
         if (!isSupabaseEnabled()) {
-            return csvService.getAllPlatforms();
+            return await csvService.getAllPlatforms();
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -127,7 +127,7 @@ export class SupabaseService {
 
     async createPlatform(platform: Omit<Platform, 'platform_id'>): Promise<Platform> {
         if (!isSupabaseEnabled()) {
-            return csvService.createPlatform(platform);
+            return await csvService.createPlatform(platform);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -148,7 +148,7 @@ export class SupabaseService {
 
     async updatePlatform(platform_id: string, updates: Partial<Platform>): Promise<Platform | null> {
         if (!isSupabaseEnabled()) {
-            return csvService.updatePlatform(platform_id, updates);
+            return await csvService.updatePlatform(platform_id, updates);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -168,7 +168,7 @@ export class SupabaseService {
 
     async deletePlatform(platform_id: string): Promise<boolean> {
         if (!isSupabaseEnabled()) {
-            return csvService.deletePlatform(platform_id);
+            return await csvService.deletePlatform(platform_id);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -190,7 +190,7 @@ export class SupabaseService {
 
     async getAllStrategies(): Promise<Strategy[]> {
         if (!isSupabaseEnabled()) {
-            return csvService.getAllStrategies();
+            return await csvService.getAllStrategies();
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -208,7 +208,7 @@ export class SupabaseService {
 
     async createStrategy(strategy: Omit<Strategy, 'strategy_id'>): Promise<Strategy> {
         if (!isSupabaseEnabled()) {
-            return csvService.createStrategy(strategy);
+            return await csvService.createStrategy(strategy);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -229,7 +229,7 @@ export class SupabaseService {
 
     async updateStrategy(strategy_id: string, updates: Partial<Strategy>): Promise<Strategy | null> {
         if (!isSupabaseEnabled()) {
-            return csvService.updateStrategy(strategy_id, updates);
+            return await csvService.updateStrategy(strategy_id, updates);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -249,7 +249,7 @@ export class SupabaseService {
 
     async deleteStrategy(strategy_id: string): Promise<boolean> {
         if (!isSupabaseEnabled()) {
-            return csvService.deleteStrategy(strategy_id);
+            return await csvService.deleteStrategy(strategy_id);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -271,7 +271,7 @@ export class SupabaseService {
 
     async getAllPortfolios(): Promise<Portfolio[]> {
         if (!isSupabaseEnabled()) {
-            return csvService.getAllPortfolios();
+            return await csvService.getAllPortfolios();
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -289,7 +289,7 @@ export class SupabaseService {
 
     async getPortfolioById(portfolio_id: string): Promise<Portfolio | null> {
         if (!isSupabaseEnabled()) {
-            return csvService.getPortfolioById(portfolio_id);
+            return await csvService.getPortfolioById(portfolio_id);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -309,7 +309,7 @@ export class SupabaseService {
 
     async createPortfolio(portfolio: Omit<Portfolio, 'portfolio_id'>): Promise<Portfolio> {
         if (!isSupabaseEnabled()) {
-            return csvService.createPortfolio(portfolio);
+            return await csvService.createPortfolio(portfolio);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -330,7 +330,7 @@ export class SupabaseService {
 
     async updatePortfolio(portfolio_id: string, updates: Partial<Portfolio>): Promise<Portfolio | null> {
         if (!isSupabaseEnabled()) {
-            return csvService.updatePortfolio(portfolio_id, updates);
+            return await csvService.updatePortfolio(portfolio_id, updates);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -350,7 +350,7 @@ export class SupabaseService {
 
     async deletePortfolio(portfolio_id: string): Promise<boolean> {
         if (!isSupabaseEnabled()) {
-            return csvService.deletePortfolio(portfolio_id);
+            return await csvService.deletePortfolio(portfolio_id);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -376,7 +376,7 @@ export class SupabaseService {
 
     async getAllCashAccounts(): Promise<CashAccount[]> {
         if (!isSupabaseEnabled()) {
-            return csvService.getAllCashAccounts();
+            return await csvService.getAllCashAccounts();
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -394,7 +394,7 @@ export class SupabaseService {
 
     async getCashAccountById(cash_account_id: string): Promise<CashAccount | null> {
         if (!isSupabaseEnabled()) {
-            return csvService.getCashAccountById(cash_account_id);
+            return await csvService.getCashAccountById(cash_account_id);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -414,7 +414,7 @@ export class SupabaseService {
 
     async createCashAccount(account: Omit<CashAccount, 'cash_account_id'>): Promise<CashAccount> {
         if (!isSupabaseEnabled()) {
-            return csvService.createCashAccount(account);
+            return await csvService.createCashAccount(account);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -435,7 +435,7 @@ export class SupabaseService {
 
     async updateCashAccount(cash_account_id: string, updates: Partial<CashAccount>): Promise<CashAccount | null> {
         if (!isSupabaseEnabled()) {
-            return csvService.updateCashAccount(cash_account_id, updates);
+            return await csvService.updateCashAccount(cash_account_id, updates);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -455,7 +455,7 @@ export class SupabaseService {
 
     async deleteCashAccount(cash_account_id: string): Promise<boolean> {
         if (!isSupabaseEnabled()) {
-            return csvService.deleteCashAccount(cash_account_id);
+            return await csvService.deleteCashAccount(cash_account_id);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -480,7 +480,7 @@ export class SupabaseService {
 
     async getAllTransactions(): Promise<Transaction[]> {
         if (!isSupabaseEnabled()) {
-            return csvService.getAllTransactions();
+            return await csvService.getAllTransactions();
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -503,7 +503,7 @@ export class SupabaseService {
 
     async getTransactionsByPortfolio(portfolio_id: string): Promise<Transaction[]> {
         if (!isSupabaseEnabled()) {
-            return csvService.getTransactionsByPortfolio(portfolio_id);
+            return await csvService.getTransactionsByPortfolio(portfolio_id);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -527,7 +527,7 @@ export class SupabaseService {
 
     async getTransactionsByCashAccount(cash_account_id: string): Promise<Transaction[]> {
         if (!isSupabaseEnabled()) {
-            return csvService.getTransactionsByCashAccount(cash_account_id);
+            return await csvService.getTransactionsByCashAccount(cash_account_id);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -551,7 +551,7 @@ export class SupabaseService {
 
     async createTransaction(transaction: Omit<Transaction, 'transaction_id'>): Promise<Transaction> {
         if (!isSupabaseEnabled()) {
-            return csvService.createTransaction(transaction);
+            return await csvService.createTransaction(transaction);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -591,7 +591,7 @@ export class SupabaseService {
 
     async updateTransaction(transaction_id: string, updates: Partial<Transaction>): Promise<Transaction | null> {
         if (!isSupabaseEnabled()) {
-            return csvService.updateTransaction(transaction_id, updates);
+            return await csvService.updateTransaction(transaction_id, updates);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -618,7 +618,7 @@ export class SupabaseService {
 
     async deleteTransaction(transaction_id: string): Promise<boolean> {
         if (!isSupabaseEnabled()) {
-            return csvService.deleteTransaction(transaction_id);
+            return await csvService.deleteTransaction(transaction_id);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -640,7 +640,7 @@ export class SupabaseService {
 
     async getAllSnapshots(): Promise<Snapshot[]> {
         if (!isSupabaseEnabled()) {
-            return csvService.getAllSnapshots();
+            return await csvService.getAllSnapshots();
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -662,7 +662,7 @@ export class SupabaseService {
 
     async getSnapshotsByPortfolio(portfolio_id: string): Promise<Snapshot[]> {
         if (!isSupabaseEnabled()) {
-            return csvService.getSnapshotsByPortfolio(portfolio_id);
+            return await csvService.getSnapshotsByPortfolio(portfolio_id);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -685,7 +685,7 @@ export class SupabaseService {
 
     async createSnapshot(snapshot: Omit<Snapshot, 'snapshot_id'>): Promise<Snapshot> {
         if (!isSupabaseEnabled()) {
-            return csvService.createSnapshot(snapshot);
+            return await csvService.createSnapshot(snapshot);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -710,7 +710,7 @@ export class SupabaseService {
 
     async updateSnapshot(snapshot_id: string, updates: Partial<Snapshot>): Promise<Snapshot | null> {
         if (!isSupabaseEnabled()) {
-            return csvService.updateSnapshot(snapshot_id, updates);
+            return await csvService.updateSnapshot(snapshot_id, updates);
         }
         if (!supabase) throw new Error('Supabase not configured');
 
@@ -734,7 +734,7 @@ export class SupabaseService {
 
     async deleteSnapshot(snapshot_id: string): Promise<boolean> {
         if (!isSupabaseEnabled()) {
-            return csvService.deleteSnapshot(snapshot_id);
+            return await csvService.deleteSnapshot(snapshot_id);
         }
         if (!supabase) throw new Error('Supabase not configured');
 

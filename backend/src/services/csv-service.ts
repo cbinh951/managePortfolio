@@ -16,6 +16,8 @@ import {
     AssetType,
     GoldType,
 } from '../types/models';
+import { googleDriveService } from './google-drive-service';
+import { isGoogleDriveEnabled } from '../config/google-drive';
 
 const DATA_DIR = path.resolve(__dirname, '../../data');
 
@@ -40,14 +42,25 @@ export class CsvService {
         return path.join(DATA_DIR, filename);
     }
 
-    private readCsv<T>(filename: string): T[] {
-        const filePath = this.getFilePath(filename);
-        if (!fs.existsSync(filePath)) {
-            return [];
+    private async readCsv<T>(filename: string): Promise<T[]> {
+        let fileContent: string;
+
+        if (isGoogleDriveEnabled()) {
+            try {
+                const buffer = await googleDriveService.downloadFile(filename);
+                fileContent = buffer.toString('utf8');
+            } catch (error) {
+                console.error(`Error reading ${filename} from Google Drive:`, error);
+                throw error;
+            }
+        } else {
+            const filePath = this.getFilePath(filename);
+            if (!fs.existsSync(filePath)) {
+                return [];
+            }
+            fileContent = fs.readFileSync(filePath, 'utf8');
         }
 
-
-        const fileContent = fs.readFileSync(filePath, 'utf8');
         const workbook = XLSX.read(fileContent, { type: 'string', raw: true });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
@@ -59,11 +72,21 @@ export class CsvService {
         return data.map(item => this.cleanItem(item));
     }
 
-    private writeCsv<T>(filename: string, data: T[]): void {
-        const filePath = this.getFilePath(filename);
+    private async writeCsv<T>(filename: string, data: T[]): Promise<void> {
         const worksheet = XLSX.utils.json_to_sheet(data);
         const csvOutput = XLSX.utils.sheet_to_csv(worksheet);
-        fs.writeFileSync(filePath, csvOutput, 'utf8');
+
+        if (isGoogleDriveEnabled()) {
+            try {
+                await googleDriveService.updateFile(filename, csvOutput);
+            } catch (error) {
+                console.error(`Error writing ${filename} to Google Drive:`, error);
+                throw error;
+            }
+        } else {
+            const filePath = this.getFilePath(filename);
+            fs.writeFileSync(filePath, csvOutput, 'utf8');
+        }
     }
 
     private cleanItem(item: any): any {
@@ -90,97 +113,97 @@ export class CsvService {
     // ============================================
     // ASSETS
     // ============================================
-    getAllAssets(): Asset[] {
-        const assets = this.readCsv<Asset>(FILES.ASSETS);
+    async getAllAssets(): Promise<Asset[]> {
+        const assets = await this.readCsv<Asset>(FILES.ASSETS);
         return assets.map(a => ({
             ...a,
             asset_type: (a as any).asset_type === 'null' ? undefined : (a as any).asset_type
         }));
     }
 
-    createAsset(asset: Omit<Asset, 'asset_id'>): Asset {
-        const assets = this.getAllAssets();
+    async createAsset(asset: Omit<Asset, 'asset_id'>): Promise<Asset> {
+        const assets = await this.getAllAssets();
         const asset_id = `A${String(Date.now()).slice(-3)}`;
         const newAsset = { ...asset, asset_id, created_at: new Date().toISOString() };
         assets.push(newAsset);
-        this.writeCsv(FILES.ASSETS, assets);
+        await this.writeCsv(FILES.ASSETS, assets);
         return newAsset;
     }
 
-    updateAsset(asset_id: string, updates: Partial<Asset>): Asset | null {
-        const assets = this.getAllAssets();
+    async updateAsset(asset_id: string, updates: Partial<Asset>): Promise<Asset | null> {
+        const assets = await this.getAllAssets();
         const index = assets.findIndex(a => a.asset_id === asset_id);
         if (index === -1) return null;
 
         const updated = { ...assets[index], ...updates };
         assets[index] = updated;
-        this.writeCsv(FILES.ASSETS, assets);
+        await this.writeCsv(FILES.ASSETS, assets);
         return updated;
     }
 
-    deleteAsset(asset_id: string): boolean {
-        let assets = this.getAllAssets();
+    async deleteAsset(asset_id: string): Promise<boolean> {
+        let assets = await this.getAllAssets();
         const initialLength = assets.length;
         assets = assets.filter(a => a.asset_id !== asset_id);
         if (assets.length === initialLength) return false;
-        this.writeCsv(FILES.ASSETS, assets);
+        await this.writeCsv(FILES.ASSETS, assets);
         return true;
     }
 
     // ============================================
     // PLATFORMS
     // ============================================
-    getAllPlatforms(): Platform[] {
-        return this.readCsv<Platform>(FILES.PLATFORMS);
+    async getAllPlatforms(): Promise<Platform[]> {
+        return await this.readCsv<Platform>(FILES.PLATFORMS);
     }
 
-    createPlatform(platform: Omit<Platform, 'platform_id'>): Platform {
-        const platforms = this.getAllPlatforms();
+    async createPlatform(platform: Omit<Platform, 'platform_id'>): Promise<Platform> {
+        const platforms = await this.getAllPlatforms();
         const platform_id = `P${String(Date.now()).slice(-3)}`;
         const newPlatform = { ...platform, platform_id };
         platforms.push(newPlatform);
-        this.writeCsv(FILES.PLATFORMS, platforms);
+        await this.writeCsv(FILES.PLATFORMS, platforms);
         return newPlatform;
     }
 
-    updatePlatform(platform_id: string, updates: Partial<Platform>): Platform | null {
-        const platforms = this.getAllPlatforms();
+    async updatePlatform(platform_id: string, updates: Partial<Platform>): Promise<Platform | null> {
+        const platforms = await this.getAllPlatforms();
         const index = platforms.findIndex(p => p.platform_id === platform_id);
         if (index === -1) return null;
 
         const updated = { ...platforms[index], ...updates };
         platforms[index] = updated;
-        this.writeCsv(FILES.PLATFORMS, platforms);
+        await this.writeCsv(FILES.PLATFORMS, platforms);
         return updated;
     }
 
-    deletePlatform(platform_id: string): boolean {
-        let platforms = this.getAllPlatforms();
+    async deletePlatform(platform_id: string): Promise<boolean> {
+        let platforms = await this.getAllPlatforms();
         const initialLength = platforms.length;
         platforms = platforms.filter(p => p.platform_id !== platform_id);
         if (platforms.length === initialLength) return false;
-        this.writeCsv(FILES.PLATFORMS, platforms);
+        await this.writeCsv(FILES.PLATFORMS, platforms);
         return true;
     }
 
     // ============================================
     // PORTFOLIOS
     // ============================================
-    getAllPortfolios(): Portfolio[] {
-        const portfolios = this.readCsv<Portfolio>(FILES.PORTFOLIOS);
+    async getAllPortfolios(): Promise<Portfolio[]> {
+        const portfolios = await this.readCsv<Portfolio>(FILES.PORTFOLIOS);
         // Sort by created_at desc
         return portfolios.sort((a: any, b: any) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
     }
 
-    getPortfolioById(portfolio_id: string): Portfolio | null {
-        const portfolios = this.getAllPortfolios();
+    async getPortfolioById(portfolio_id: string): Promise<Portfolio | null> {
+        const portfolios = await this.getAllPortfolios();
         return portfolios.find(p => p.portfolio_id === portfolio_id) || null;
     }
 
-    createPortfolio(portfolio: Omit<Portfolio, 'portfolio_id'>): Portfolio {
-        const portfolios = this.getAllPortfolios();
+    async createPortfolio(portfolio: Omit<Portfolio, 'portfolio_id'>): Promise<Portfolio> {
+        const portfolios = await this.getAllPortfolios();
         const portfolio_id = `PF${Date.now()}${Math.floor(Math.random() * 10000)}`;
         const newPortfolio = {
             ...portfolio,
@@ -189,87 +212,87 @@ export class CsvService {
             updated_at: new Date().toISOString()
         };
         portfolios.push(newPortfolio);
-        this.writeCsv(FILES.PORTFOLIOS, portfolios);
+        await this.writeCsv(FILES.PORTFOLIOS, portfolios);
         return newPortfolio;
     }
 
-    updatePortfolio(portfolio_id: string, updates: Partial<Portfolio>): Portfolio | null {
-        const portfolios = this.getAllPortfolios();
+    async updatePortfolio(portfolio_id: string, updates: Partial<Portfolio>): Promise<Portfolio | null> {
+        const portfolios = await this.getAllPortfolios();
         const index = portfolios.findIndex(p => p.portfolio_id === portfolio_id);
         if (index === -1) return null;
 
         const updated = { ...portfolios[index], ...updates, updated_at: new Date().toISOString() };
         portfolios[index] = updated;
-        this.writeCsv(FILES.PORTFOLIOS, portfolios);
+        await this.writeCsv(FILES.PORTFOLIOS, portfolios);
         return updated;
     }
 
-    deletePortfolio(portfolio_id: string): boolean {
-        const portfolios = this.getAllPortfolios();
+    async deletePortfolio(portfolio_id: string): Promise<boolean> {
+        const portfolios = await this.getAllPortfolios();
         const index = portfolios.findIndex(p => p.portfolio_id === portfolio_id);
         if (index === -1) return false;
 
         // Delete related
-        this.deleteTransactionsByPortfolio(portfolio_id);
-        this.deleteSnapshotsByPortfolio(portfolio_id);
+        await this.deleteTransactionsByPortfolio(portfolio_id);
+        await this.deleteSnapshotsByPortfolio(portfolio_id);
 
         portfolios.splice(index, 1);
-        this.writeCsv(FILES.PORTFOLIOS, portfolios);
+        await this.writeCsv(FILES.PORTFOLIOS, portfolios);
         return true;
     }
 
     // ============================================
     // CASH ACCOUNTS
     // ============================================
-    getAllCashAccounts(): CashAccount[] {
-        const accounts = this.readCsv<CashAccount>(FILES.CASH_ACCOUNTS);
+    async getAllCashAccounts(): Promise<CashAccount[]> {
+        const accounts = await this.readCsv<CashAccount>(FILES.CASH_ACCOUNTS);
         return accounts.sort((a: any, b: any) =>
             new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
         );
     }
 
-    getCashAccountById(id: string): CashAccount | null {
-        return this.getAllCashAccounts().find(c => c.cash_account_id === id) || null;
+    async getCashAccountById(id: string): Promise<CashAccount | null> {
+        const accounts = await this.getAllCashAccounts();
+        return accounts.find(c => c.cash_account_id === id) || null;
     }
 
-    createCashAccount(account: Omit<CashAccount, 'cash_account_id'>): CashAccount {
-        const accounts = this.getAllCashAccounts();
+    async createCashAccount(account: Omit<CashAccount, 'cash_account_id'>): Promise<CashAccount> {
+        const accounts = await this.getAllCashAccounts();
         const cash_account_id = `CA${Date.now()}${Math.floor(Math.random() * 10000)}`;
         const newAccount = { ...account, cash_account_id, created_at: new Date().toISOString() };
         accounts.push(newAccount);
-        this.writeCsv(FILES.CASH_ACCOUNTS, accounts);
+        await this.writeCsv(FILES.CASH_ACCOUNTS, accounts);
         return newAccount;
     }
 
-    updateCashAccount(id: string, updates: Partial<CashAccount>): CashAccount | null {
-        const accounts = this.getAllCashAccounts();
+    async updateCashAccount(id: string, updates: Partial<CashAccount>): Promise<CashAccount | null> {
+        const accounts = await this.getAllCashAccounts();
         const index = accounts.findIndex(c => c.cash_account_id === id);
         if (index === -1) return null;
 
         const updated = { ...accounts[index], ...updates, updated_at: new Date().toISOString() };
         accounts[index] = updated;
-        this.writeCsv(FILES.CASH_ACCOUNTS, accounts);
+        await this.writeCsv(FILES.CASH_ACCOUNTS, accounts);
         return updated;
     }
 
-    deleteCashAccount(id: string): boolean {
-        const accounts = this.getAllCashAccounts();
+    async deleteCashAccount(id: string): Promise<boolean> {
+        const accounts = await this.getAllCashAccounts();
         const index = accounts.findIndex(c => c.cash_account_id === id);
         if (index === -1) return false;
 
         // Delete related
-        this.deleteTransactionsByCashAccount(id);
+        await this.deleteTransactionsByCashAccount(id);
 
         accounts.splice(index, 1);
-        this.writeCsv(FILES.CASH_ACCOUNTS, accounts);
+        await this.writeCsv(FILES.CASH_ACCOUNTS, accounts);
         return true;
     }
 
     // ============================================
     // TRANSACTIONS
-    // ============================================
-    getAllTransactions(): Transaction[] {
-        const transactions = this.readCsv<any>(FILES.TRANSACTIONS);
+    async getAllTransactions(): Promise<Transaction[]> {
+        const transactions = await this.readCsv<any>(FILES.TRANSACTIONS);
         return transactions.map(t => ({
             ...t,
             amount: Number(t.amount),
@@ -286,16 +309,18 @@ export class CsvService {
         })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
 
-    getTransactionsByPortfolio(portfolio_id: string): Transaction[] {
-        return this.getAllTransactions().filter(t => t.portfolio_id === portfolio_id);
+    async getTransactionsByPortfolio(portfolio_id: string): Promise<Transaction[]> {
+        const transactions = await this.getAllTransactions();
+        return transactions.filter(t => t.portfolio_id === portfolio_id);
     }
 
-    getTransactionsByCashAccount(cash_account_id: string): Transaction[] {
-        return this.getAllTransactions().filter(t => t.cash_account_id === cash_account_id);
+    async getTransactionsByCashAccount(cash_account_id: string): Promise<Transaction[]> {
+        const transactions = await this.getAllTransactions();
+        return transactions.filter(t => t.cash_account_id === cash_account_id);
     }
 
-    createTransaction(transaction: Omit<Transaction, 'transaction_id'>): Transaction {
-        const transactions = this.getAllTransactions();
+    async createTransaction(transaction: Omit<Transaction, 'transaction_id'>): Promise<Transaction> {
+        const transactions = await this.getAllTransactions();
         const transaction_id = `T${Date.now()}${Math.floor(Math.random() * 10000)}`;
 
         const newTransaction: any = {
@@ -314,7 +339,7 @@ export class CsvService {
         };
 
         transactions.unshift(newTransaction as Transaction); // Add to beginning for desc sort logic
-        this.writeCsv(FILES.TRANSACTIONS, transactions);
+        await this.writeCsv(FILES.TRANSACTIONS, transactions);
 
         return {
             ...transaction,
@@ -323,8 +348,8 @@ export class CsvService {
         };
     }
 
-    updateTransaction(transaction_id: string, updates: Partial<Transaction>): Transaction | null {
-        const allTransactions = this.readCsv<any>(FILES.TRANSACTIONS);
+    async updateTransaction(transaction_id: string, updates: Partial<Transaction>): Promise<Transaction | null> {
+        const allTransactions = await this.readCsv<any>(FILES.TRANSACTIONS);
         const index = allTransactions.findIndex(t => t.transaction_id === transaction_id);
         if (index === -1) return null;
 
@@ -344,7 +369,7 @@ export class CsvService {
         };
 
         allTransactions[index] = updatedRaw;
-        this.writeCsv(FILES.TRANSACTIONS, allTransactions);
+        await this.writeCsv(FILES.TRANSACTIONS, allTransactions);
 
         return {
             ...updatedRaw,
@@ -361,32 +386,29 @@ export class CsvService {
         };
     }
 
-    deleteTransaction(transaction_id: string): boolean {
-        let transactions = this.readCsv<any>(FILES.TRANSACTIONS);
+    async deleteTransaction(transaction_id: string): Promise<boolean> {
+        let transactions = await this.readCsv<any>(FILES.TRANSACTIONS);
         const initialLength = transactions.length;
         transactions = transactions.filter(t => t.transaction_id !== transaction_id);
         if (transactions.length === initialLength) return false;
-        this.writeCsv(FILES.TRANSACTIONS, transactions);
+        await this.writeCsv(FILES.TRANSACTIONS, transactions);
         return true;
     }
 
-    private deleteTransactionsByPortfolio(portfolio_id: string): void {
-        let transactions = this.readCsv<any>(FILES.TRANSACTIONS);
+    private async deleteTransactionsByPortfolio(portfolio_id: string): Promise<void> {
+        let transactions = await this.readCsv<any>(FILES.TRANSACTIONS);
         transactions = transactions.filter(t => t.portfolio_id !== portfolio_id);
-        this.writeCsv(FILES.TRANSACTIONS, transactions);
+        await this.writeCsv(FILES.TRANSACTIONS, transactions);
     }
 
-    private deleteTransactionsByCashAccount(cash_account_id: string): void {
-        let transactions = this.readCsv<any>(FILES.TRANSACTIONS);
+    private async deleteTransactionsByCashAccount(cash_account_id: string): Promise<void> {
+        let transactions = await this.readCsv<any>(FILES.TRANSACTIONS);
         transactions = transactions.filter(t => t.cash_account_id !== cash_account_id);
-        this.writeCsv(FILES.TRANSACTIONS, transactions);
+        await this.writeCsv(FILES.TRANSACTIONS, transactions);
     }
 
-    // ============================================
-    // SNAPSHOTS
-    // ============================================
-    getAllSnapshots(): Snapshot[] {
-        const snapshots = this.readCsv<any>(FILES.SNAPSHOTS);
+    async getAllSnapshots(): Promise<Snapshot[]> {
+        const snapshots = await this.readCsv<any>(FILES.SNAPSHOTS);
         return snapshots.map(s => ({
             ...s,
             nav: Number(s.nav),
@@ -395,17 +417,18 @@ export class CsvService {
         })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
 
-    getSnapshotsByPortfolio(portfolio_id: string): Snapshot[] {
-        return this.getAllSnapshots().filter(s => s.portfolio_id === portfolio_id);
+    async getSnapshotsByPortfolio(portfolio_id: string): Promise<Snapshot[]> {
+        const snapshots = await this.getAllSnapshots();
+        return snapshots.filter(s => s.portfolio_id === portfolio_id);
     }
 
-    createSnapshot(snapshot: Omit<Snapshot, 'snapshot_id'>): Snapshot {
-        const snapshots = this.readCsv<any>(FILES.SNAPSHOTS); // read raw to push
+    async createSnapshot(snapshot: Omit<Snapshot, 'snapshot_id'>): Promise<Snapshot> {
+        const snapshots = await this.readCsv<any>(FILES.SNAPSHOTS); // read raw to push
         const snapshot_id = `SNP${Date.now()}${Math.floor(Math.random() * 10000)}`;
 
         const newSnapshot = { ...snapshot, snapshot_id };
         snapshots.push(newSnapshot);
-        this.writeCsv(FILES.SNAPSHOTS, snapshots);
+        await this.writeCsv(FILES.SNAPSHOTS, snapshots);
 
         return {
             ...newSnapshot,
@@ -413,14 +436,14 @@ export class CsvService {
         };
     }
 
-    updateSnapshot(snapshot_id: string, updates: Partial<Snapshot>): Snapshot | null {
-        const snapshots = this.readCsv<any>(FILES.SNAPSHOTS);
+    async updateSnapshot(snapshot_id: string, updates: Partial<Snapshot>): Promise<Snapshot | null> {
+        const snapshots = await this.readCsv<any>(FILES.SNAPSHOTS);
         const index = snapshots.findIndex(s => s.snapshot_id === snapshot_id);
         if (index === -1) return null;
 
         const updated = { ...snapshots[index], ...updates };
         snapshots[index] = updated;
-        this.writeCsv(FILES.SNAPSHOTS, snapshots);
+        await this.writeCsv(FILES.SNAPSHOTS, snapshots);
 
         return {
             ...updated,
@@ -430,62 +453,62 @@ export class CsvService {
         };
     }
 
-    deleteSnapshot(snapshot_id: string): boolean {
-        let snapshots = this.readCsv<any>(FILES.SNAPSHOTS);
+    async deleteSnapshot(snapshot_id: string): Promise<boolean> {
+        let snapshots = await this.readCsv<any>(FILES.SNAPSHOTS);
         const initialLength = snapshots.length;
         snapshots = snapshots.filter(s => s.snapshot_id !== snapshot_id);
         if (snapshots.length === initialLength) return false;
-        this.writeCsv(FILES.SNAPSHOTS, snapshots);
+        await this.writeCsv(FILES.SNAPSHOTS, snapshots);
         return true;
     }
 
-    private deleteSnapshotsByPortfolio(portfolio_id: string): void {
-        let snapshots = this.readCsv<any>(FILES.SNAPSHOTS);
+    private async deleteSnapshotsByPortfolio(portfolio_id: string): Promise<void> {
+        let snapshots = await this.readCsv<any>(FILES.SNAPSHOTS);
         snapshots = snapshots.filter(s => s.portfolio_id !== portfolio_id);
-        this.writeCsv(FILES.SNAPSHOTS, snapshots);
+        await this.writeCsv(FILES.SNAPSHOTS, snapshots);
     }
 
     // ============================================
     // STRATEGIES
     // ============================================
-    getAllStrategies(): Strategy[] {
-        return this.readCsv<Strategy>(FILES.STRATEGIES);
+    async getAllStrategies(): Promise<Strategy[]> {
+        return await this.readCsv<Strategy>(FILES.STRATEGIES);
     }
 
-    createStrategy(strategy: Omit<Strategy, 'strategy_id'>): Strategy {
-        const strategies = this.getAllStrategies();
+    async createStrategy(strategy: Omit<Strategy, 'strategy_id'>): Promise<Strategy> {
+        const strategies = await this.getAllStrategies();
         const strategy_id = `S${String(Date.now()).slice(-3)}`;
         const newStrategy = { ...strategy, strategy_id };
         strategies.push(newStrategy);
-        this.writeCsv(FILES.STRATEGIES, strategies);
+        await this.writeCsv(FILES.STRATEGIES, strategies);
         return newStrategy;
     }
 
-    updateStrategy(strategy_id: string, updates: Partial<Strategy>): Strategy | null {
-        const strategies = this.getAllStrategies();
+    async updateStrategy(strategy_id: string, updates: Partial<Strategy>): Promise<Strategy | null> {
+        const strategies = await this.getAllStrategies();
         const index = strategies.findIndex(s => s.strategy_id === strategy_id);
         if (index === -1) return null;
 
         const updated = { ...strategies[index], ...updates };
         strategies[index] = updated;
-        this.writeCsv(FILES.STRATEGIES, strategies);
+        await this.writeCsv(FILES.STRATEGIES, strategies);
         return updated;
     }
 
-    deleteStrategy(strategy_id: string): boolean {
-        let strategies = this.getAllStrategies();
+    async deleteStrategy(strategy_id: string): Promise<boolean> {
+        let strategies = await this.getAllStrategies();
         const initialLength = strategies.length;
         strategies = strategies.filter(s => s.strategy_id !== strategy_id);
         if (strategies.length === initialLength) return false;
-        this.writeCsv(FILES.STRATEGIES, strategies);
+        await this.writeCsv(FILES.STRATEGIES, strategies);
         return true;
     }
 
     // ============================================
     // STOCK PRICES CACHE
     // ============================================
-    getAllStockPrices(): StockPrice[] {
-        const prices = this.readCsv<StockPrice>(FILES.STOCK_PRICES);
+    async getAllStockPrices(): Promise<StockPrice[]> {
+        const prices = await this.readCsv<StockPrice>(FILES.STOCK_PRICES);
         return prices.map(p => ({
             ticker: String(p.ticker).toUpperCase(),
             price: Number(p.price),
@@ -493,15 +516,15 @@ export class CsvService {
         }));
     }
 
-    getStockPriceByTicker(ticker: string): StockPrice | null {
-        const prices = this.getAllStockPrices();
+    async getStockPriceByTicker(ticker: string): Promise<StockPrice | null> {
+        const prices = await this.getAllStockPrices();
         const upperTicker = ticker.toUpperCase();
         return prices.find(p => p.ticker === upperTicker) || null;
     }
 
-    saveStockPrices(prices: StockPrice[]): void {
+    async saveStockPrices(prices: StockPrice[]): Promise<void> {
         // Read existing prices first
-        const existingPrices = this.getAllStockPrices();
+        const existingPrices = await this.getAllStockPrices();
         const priceMap = new Map<string, StockPrice>();
         
         // Add existing prices to map
@@ -520,11 +543,11 @@ export class CsvService {
         
         // Convert map back to array and write
         const mergedPrices = Array.from(priceMap.values());
-        this.writeCsv(FILES.STOCK_PRICES, mergedPrices);
+        await this.writeCsv(FILES.STOCK_PRICES, mergedPrices);
     }
 
-    updateStockPrice(ticker: string, price: number): void {
-        const prices = this.getAllStockPrices();
+    async updateStockPrice(ticker: string, price: number): Promise<void> {
+        const prices = await this.getAllStockPrices();
         const upperTicker = ticker.toUpperCase();
         const index = prices.findIndex(p => p.ticker === upperTicker);
         
@@ -540,36 +563,36 @@ export class CsvService {
             prices.push(updatedPrice);
         }
 
-        this.saveStockPrices(prices);
+        await this.saveStockPrices(prices);
     }
 
-    updateStockPrices(prices: Array<{ ticker: string; price: number; last_updated: string }>): void {
+    async updateStockPrices(prices: Array<{ ticker: string; price: number; last_updated: string }>): Promise<void> {
         // Convert to StockPrice format and save
         const stockPrices: StockPrice[] = prices.map(p => ({
             ticker: p.ticker.toUpperCase(),
             price: p.price,
             updated_at: p.last_updated
         }));
-        this.saveStockPrices(stockPrices);
+        await this.saveStockPrices(stockPrices);
     }
 
     // ============================================
     // TRACKING LISTS
     // ============================================
-    getAllTrackingLists(): TrackingList[] {
-        const lists = this.readCsv<TrackingList>(FILES.TRACKING_LISTS);
+    async getAllTrackingLists(): Promise<TrackingList[]> {
+        const lists = await this.readCsv<TrackingList>(FILES.TRACKING_LISTS);
         return lists.sort((a: any, b: any) =>
             new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
         );
     }
 
-    getTrackingListById(list_id: string): TrackingList | null {
-        const lists = this.getAllTrackingLists();
+    async getTrackingListById(list_id: string): Promise<TrackingList | null> {
+        const lists = await this.getAllTrackingLists();
         return lists.find(l => l.list_id === list_id) || null;
     }
 
-    createTrackingList(list: Omit<TrackingList, 'list_id' | 'created_at' | 'updated_at'>): TrackingList {
-        const lists = this.getAllTrackingLists();
+    async createTrackingList(list: Omit<TrackingList, 'list_id' | 'created_at' | 'updated_at'>): Promise<TrackingList> {
+        const lists = await this.getAllTrackingLists();
         const list_id = `TL${Date.now()}${Math.floor(Math.random() * 10000)}`;
         const newList: TrackingList = {
             ...list,
@@ -578,12 +601,12 @@ export class CsvService {
             updated_at: new Date().toISOString()
         };
         lists.push(newList);
-        this.writeCsv(FILES.TRACKING_LISTS, lists);
+        await this.writeCsv(FILES.TRACKING_LISTS, lists);
         return newList;
     }
 
-    updateTrackingList(list_id: string, updates: Partial<TrackingList>): TrackingList | null {
-        const lists = this.getAllTrackingLists();
+    async updateTrackingList(list_id: string, updates: Partial<TrackingList>): Promise<TrackingList | null> {
+        const lists = await this.getAllTrackingLists();
         const index = lists.findIndex(l => l.list_id === list_id);
         if (index === -1) return null;
 
@@ -593,28 +616,28 @@ export class CsvService {
             updated_at: new Date().toISOString()
         };
         lists[index] = updated;
-        this.writeCsv(FILES.TRACKING_LISTS, lists);
+        await this.writeCsv(FILES.TRACKING_LISTS, lists);
         return updated;
     }
 
-    deleteTrackingList(list_id: string): boolean {
-        const lists = this.getAllTrackingLists();
+    async deleteTrackingList(list_id: string): Promise<boolean> {
+        const lists = await this.getAllTrackingLists();
         const index = lists.findIndex(l => l.list_id === list_id);
         if (index === -1) return false;
 
         // Delete related stocks
+        await this.deleteTrackingStocksByList(list_id);
+
+        lists.splice(index, 1);
+        await // Delete related stocks
         this.deleteTrackingStocksByList(list_id);
 
         lists.splice(index, 1);
         this.writeCsv(FILES.TRACKING_LISTS, lists);
         return true;
     }
-
-    // ============================================
-    // TRACKING STOCKS
-    // ============================================
-    getAllTrackingStocks(): TrackingStock[] {
-        const stocks = this.readCsv<any>(FILES.TRACKING_STOCKS);
+async getAllTrackingStocks(): Promise<TrackingStock[]> {
+        const stocks = await this.readCsv<any>(FILES.TRACKING_STOCKS);
         return stocks.map(s => ({
             ...s,
             stop_buy_price: Number(s.stop_buy_price),
@@ -627,17 +650,18 @@ export class CsvService {
         })).sort((a, b) => a.row_order - b.row_order);
     }
 
-    getTrackingStocksByList(list_id: string): TrackingStock[] {
-        return this.getAllTrackingStocks().filter(s => s.list_id === list_id);
+    async getTrackingStocksByList(list_id: string): Promise<TrackingStock[]> {
+        const stocks = await this.getAllTrackingStocks();
+        return stocks.filter(s => s.list_id === list_id);
     }
 
-    getTrackingStockById(stock_id: string): TrackingStock | null {
-        const stocks = this.getAllTrackingStocks();
+    async getTrackingStockById(stock_id: string): Promise<TrackingStock | null> {
+        const stocks = await this.getAllTrackingStocks();
         return stocks.find(s => s.stock_id === stock_id) || null;
     }
 
-    createTrackingStock(stock: Omit<TrackingStock, 'stock_id'>): TrackingStock {
-        const stocks = this.readCsv<any>(FILES.TRACKING_STOCKS);
+    async createTrackingStock(stock: Omit<TrackingStock, 'stock_id'>): Promise<TrackingStock> {
+        const stocks = await this.readCsv<any>(FILES.TRACKING_STOCKS);
         const stock_id = `TS${Date.now()}${Math.floor(Math.random() * 10000)}`;
 
         const newStock: any = {
@@ -649,7 +673,7 @@ export class CsvService {
         };
 
         stocks.push(newStock);
-        this.writeCsv(FILES.TRACKING_STOCKS, stocks);
+        await this.writeCsv(FILES.TRACKING_STOCKS, stocks);
 
         return {
             ...stock,
@@ -657,8 +681,8 @@ export class CsvService {
         };
     }
 
-    createTrackingStocksBatch(stocks: Omit<TrackingStock, 'stock_id'>[]): TrackingStock[] {
-        const existingStocks = this.readCsv<any>(FILES.TRACKING_STOCKS);
+    async createTrackingStocksBatch(stocks: Omit<TrackingStock, 'stock_id'>[]): Promise<TrackingStock[]> {
+        const existingStocks = await this.readCsv<any>(FILES.TRACKING_STOCKS);
         const newStocks: TrackingStock[] = [];
 
         stocks.forEach(stock => {
@@ -674,12 +698,12 @@ export class CsvService {
             newStocks.push({ ...stock, stock_id });
         });
 
-        this.writeCsv(FILES.TRACKING_STOCKS, existingStocks);
+        await this.writeCsv(FILES.TRACKING_STOCKS, existingStocks);
         return newStocks;
     }
 
-    updateTrackingStock(stock_id: string, updates: Partial<TrackingStock>): TrackingStock | null {
-        const allStocks = this.readCsv<any>(FILES.TRACKING_STOCKS);
+    async updateTrackingStock(stock_id: string, updates: Partial<TrackingStock>): Promise<TrackingStock | null> {
+        const allStocks = await this.readCsv<any>(FILES.TRACKING_STOCKS);
         const index = allStocks.findIndex(s => s.stock_id === stock_id);
         if (index === -1) return null;
 
@@ -693,7 +717,7 @@ export class CsvService {
         };
 
         allStocks[index] = updatedRaw;
-        this.writeCsv(FILES.TRACKING_STOCKS, allStocks);
+        await this.writeCsv(FILES.TRACKING_STOCKS, allStocks);
 
         return {
             ...updatedRaw,
@@ -706,18 +730,18 @@ export class CsvService {
         };
     }
 
-    deleteTrackingStock(stock_id: string): boolean {
-        let stocks = this.readCsv<any>(FILES.TRACKING_STOCKS);
+    async deleteTrackingStock(stock_id: string): Promise<boolean> {
+        let stocks = await this.readCsv<any>(FILES.TRACKING_STOCKS);
         const initialLength = stocks.length;
         stocks = stocks.filter(s => s.stock_id !== stock_id);
         if (stocks.length === initialLength) return false;
-        this.writeCsv(FILES.TRACKING_STOCKS, stocks);
+        await this.writeCsv(FILES.TRACKING_STOCKS, stocks);
         return true;
     }
 
-    private deleteTrackingStocksByList(list_id: string): void {
-        let stocks = this.readCsv<any>(FILES.TRACKING_STOCKS);
+    private async deleteTrackingStocksByList(list_id: string): Promise<void> {
+        let stocks = await this.readCsv<any>(FILES.TRACKING_STOCKS);
         stocks = stocks.filter(s => s.list_id !== list_id);
-        this.writeCsv(FILES.TRACKING_STOCKS, stocks);
+        await this.writeCsv(FILES.TRACKING_STOCKS, stocks);
     }
 }

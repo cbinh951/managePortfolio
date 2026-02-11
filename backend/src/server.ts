@@ -7,6 +7,8 @@ dotenv.config();
 
 // Import services
 import { isSupabaseEnabled } from './config/supabase';
+import { isGoogleDriveEnabled, validateGoogleDriveConfig } from './config/google-drive';
+import { googleDriveService } from './services/google-drive-service';
 
 // Supabase Routes
 import {
@@ -67,6 +69,25 @@ if (USE_SUPABASE) {
     console.warn('⚠️ Supabase is not enabled. Using CSV fallback storage.');
 }
 
+// Google Drive configuration check
+if (isGoogleDriveEnabled()) {
+    console.log('📁 Google Drive storage is ENABLED');
+    const validation = validateGoogleDriveConfig();
+    if (!validation.valid) {
+        console.error('❌ Google Drive configuration errors:');
+        validation.errors.forEach(error => console.error(`   - ${error}`));
+        console.error('⚠️  Server will continue but Google Drive operations may fail');
+    } else {
+        console.log('✅ Google Drive configuration validated');
+        // Initialize connection in background
+        googleDriveService.ensureInitialized().catch(error => {
+            console.error('❌ Failed to initialize Google Drive:', error.message);
+        });
+    }
+} else {
+    console.log('📂 Using local file storage for CSV data');
+}
+
 app.use('/api/portfolios', createSupabasePortfolioRoutes());
 app.use('/api/cash-accounts', createSupabaseCashAccountRoutes());
 app.use('/api/transactions', createSupabaseTransactionRoutes());
@@ -95,8 +116,52 @@ app.get('/health', (req, res) => {
     res.json({
         status: 'ok',
         message: 'Portfolio Management API is running',
-        storage: 'supabase',
+        storage: USE_SUPABASE ? 'supabase' : 'csv',
+        googleDrive: {
+            enabled: isGoogleDriveEnabled(),
+            initialized: isGoogleDriveEnabled() ? googleDriveService.isInitialized() : false,
+        }
     });
+});
+
+// Google Drive health check
+app.get('/health/drive', async (req, res) => {
+    if (!isGoogleDriveEnabled()) {
+        return res.json({
+            enabled: false,
+            message: 'Google Drive is not enabled',
+        });
+    }
+
+    try {
+        const connectionStatus = await googleDriveService.checkConnection();
+        const stats = googleDriveService.getStats();
+        const files = await googleDriveService.listFiles();
+
+        res.json({
+            enabled: true,
+            initialized: googleDriveService.isInitialized(),
+            connected: connectionStatus.connected,
+            error: connectionStatus.error,
+            stats: {
+                cacheSize: stats.cacheSize,
+                filesTracked: stats.filesTracked,
+                filesOnDrive: files.length,
+            },
+            files: files.map(f => ({
+                name: f.name,
+                size: f.size ? `${(Number(f.size) / 1024).toFixed(2)} KB` : 'N/A',
+                modified: f.modifiedTime,
+            })),
+        });
+    } catch (error: any) {
+        res.status(500).json({
+            enabled: true,
+            initialized: googleDriveService.isInitialized(),
+            connected: false,
+            error: error.message,
+        });
+    }
 });
 
 // 404 handler

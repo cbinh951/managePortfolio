@@ -44,12 +44,12 @@ const uploadExcel = multer({
  */
 router.get('/', async (req: Request, res: Response) => {
     try {
-        const lists = csvService.getAllTrackingLists();
+        const lists = await csvService.getAllTrackingLists();
         
         // Add stock count to each list
         const listsWithCount = await Promise.all(
             lists.map(async (list) => {
-                const stocks = csvService.getTrackingStocksByList(list.list_id);
+                const stocks = await csvService.getTrackingStocksByList(list.list_id);
                 const summary = await calculationService.calculateListSummary(list.list_id);
                 
                 return {
@@ -83,7 +83,7 @@ router.post('/', async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, error: 'Name is required' });
         }
 
-        const newList = csvService.createTrackingList({ name });
+        const newList = await csvService.createTrackingList({ name });
         return res.json({ success: true, data: newList });
     } catch (error) {
         console.error('Error creating tracking list:', error);
@@ -101,7 +101,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const list = csvService.getTrackingListById(id);
+        const list = await csvService.getTrackingListById(id);
 
         if (!list) {
             return res.status(404).json({ success: false, error: 'Tracking list not found' });
@@ -136,7 +136,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         const { id } = req.params;
         const { name } = req.body;
 
-        const updated = csvService.updateTrackingList(id, { name });
+        const updated = await csvService.updateTrackingList(id, { name });
 
         if (!updated) {
             return res.status(404).json({ success: false, error: 'Tracking list not found' });
@@ -159,7 +159,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const deleted = csvService.deleteTrackingList(id);
+        const deleted = await csvService.deleteTrackingList(id);
 
         if (!deleted) {
             return res.status(404).json({ success: false, error: 'Tracking list not found' });
@@ -287,7 +287,7 @@ router.post('/:id/upload-image', upload.single('image'), async (req: Request, re
 router.post('/:id/upload-excel', uploadExcel.single('file'), async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const list = csvService.getTrackingListById(id);
+        const list = await csvService.getTrackingListById(id);
 
         if (!list) {
             return res.status(404).json({ success: false, error: 'Tracking list not found' });
@@ -334,7 +334,7 @@ router.post('/:id/upload-excel', uploadExcel.single('file'), async (req: Request
         }
 
         // Save stocks to database
-        const createdStocks = csvService.createTrackingStocksBatch(parsedStocks);
+        const createdStocks = await csvService.createTrackingStocksBatch(parsedStocks);
 
         return res.json({
             success: true,
@@ -366,7 +366,7 @@ router.post('/:id/stocks', async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, error: 'Stocks array is required' });
         }
 
-        const list = csvService.getTrackingListById(id);
+        const list = await csvService.getTrackingListById(id);
         if (!list) {
             return res.status(404).json({ success: false, error: 'Tracking list not found' });
         }
@@ -383,7 +383,7 @@ router.post('/:id/stocks', async (req: Request, res: Response) => {
             row_order: index,
         }));
 
-        const createdStocks = csvService.createTrackingStocksBatch(stocksToCreate);
+        const createdStocks = await csvService.createTrackingStocksBatch(stocksToCreate);
 
         return res.json({ success: true, data: createdStocks });
     } catch (error) {
@@ -404,7 +404,7 @@ router.put('/stocks/:stock_id', async (req: Request, res: Response) => {
         const { stock_id } = req.params;
         const updates = req.body;
 
-        const updated = csvService.updateTrackingStock(stock_id, updates);
+        const updated = await csvService.updateTrackingStock(stock_id, updates);
 
         if (!updated) {
             return res.status(404).json({ success: false, error: 'Stock not found' });
@@ -430,7 +430,7 @@ router.put('/stocks/:stock_id', async (req: Request, res: Response) => {
 router.delete('/stocks/:stock_id', async (req: Request, res: Response) => {
     try {
         const { stock_id } = req.params;
-        const deleted = csvService.deleteTrackingStock(stock_id);
+        const deleted = await csvService.deleteTrackingStock(stock_id);
 
         if (!deleted) {
             return res.status(404).json({ success: false, error: 'Stock not found' });
@@ -455,13 +455,13 @@ router.post('/:id/sync-prices', async (req: Request, res: Response) => {
         const { id } = req.params;
         
         // Get tracking list
-        const list = csvService.getTrackingListById(id);
+        const list = await csvService.getTrackingListById(id);
         if (!list) {
             return res.status(404).json({ success: false, error: 'Tracking list not found' });
         }
 
         // Get all stocks in the list
-        const stocks = csvService.getTrackingStocksByList(id);
+        const stocks = await csvService.getTrackingStocksByList(id);
         if (stocks.length === 0) {
             return res.status(400).json({ success: false, error: 'No stocks in tracking list' });
         }
@@ -501,7 +501,7 @@ router.post('/:id/sync-prices', async (req: Request, res: Response) => {
         }));
 
         if (stockPrices.length > 0) {
-            csvService.updateStockPrices(stockPrices);
+            await csvService.updateStockPrices(stockPrices);
             console.log(`💾 Saved ${stockPrices.length} prices to cache`);
         }
 

@@ -45,6 +45,12 @@ coverage/
 # Data backups (optional - remove if you want to track backups)
 backend/data/backups/
 
+# Google Drive credentials (NEVER commit these!)
+backend/credentials/
+**/credentials/
+**/google-service-account*.json
+*.json.key
+
 # TypeScript
 *.tsbuildinfo
 

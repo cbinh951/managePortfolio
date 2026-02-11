@@ -124,7 +124,7 @@ router.get('/cached/:symbol', async (req: Request, res: Response) => {
     }
 
     try {
-        const cachedPrice = csvService.getStockPriceByTicker(symbol);
+        const cachedPrice = await csvService.getStockPriceByTicker(symbol);
         
         if (cachedPrice) {
             return res.json({
@@ -161,7 +161,7 @@ router.post('/cached/batch', async (req: Request, res: Response) => {
     }
 
     try {
-        const allPrices = csvService.getAllStockPrices();
+        const allPrices = await csvService.getAllStockPrices();
         const priceMap: Record<string, { price: number; updated_at: string }> = {};
         const missing: string[] = [];
 
@@ -198,7 +198,7 @@ router.post('/cached/batch', async (req: Request, res: Response) => {
  */
 router.get('/cached/last-sync', async (req: Request, res: Response) => {
     try {
-        const allPrices = csvService.getAllStockPrices();
+        const allPrices = await csvService.getAllStockPrices();
         
         if (allPrices.length === 0) {
             return res.json({
@@ -397,7 +397,7 @@ router.post('/sync', async (req: Request, res: Response) => {
         }));
 
         if (stockPrices.length > 0) {
-            csvService.saveStockPrices(stockPrices);
+            await csvService.saveStockPrices(stockPrices);
             console.log(`💾 Saved ${stockPrices.length} stock prices to cache`);
         }
 
