@@ -29,8 +29,17 @@ class GoogleDriveService {
       const envCredentials = process.env.GOOGLE_CREDENTIALS || process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
       if (envCredentials) {
         console.log('📝 Using Google service account from environment variable');
-        const credentials = JSON.parse(envCredentials);
-        
+
+        // Strip out literal surrounding quotes if present (common issue with some env loaders / cloud provider dashboards)
+        let cleanedCredentials = envCredentials.trim();
+        if (cleanedCredentials.startsWith("'") && cleanedCredentials.endsWith("'")) {
+          cleanedCredentials = cleanedCredentials.slice(1, -1);
+        } else if (cleanedCredentials.startsWith('"') && cleanedCredentials.endsWith('"')) {
+          cleanedCredentials = cleanedCredentials.slice(1, -1);
+        }
+
+        const credentials = JSON.parse(cleanedCredentials);
+
         this.auth = new google.auth.GoogleAuth({
           credentials,
           scopes: ['https://www.googleapis.com/auth/drive'],
@@ -38,7 +47,7 @@ class GoogleDriveService {
       } else {
         // Use key file (for local development)
         const keyFilePath = path.resolve(googleDriveConfig.serviceAccountKeyPath);
-        
+
         if (!fs.existsSync(keyFilePath)) {
           throw new Error(`Service account key file not found at: ${keyFilePath}. Set GOOGLE_SERVICE_ACCOUNT_JSON environment variable for cloud deployments.`);
         }
@@ -51,10 +60,10 @@ class GoogleDriveService {
       }
 
       this.drive = google.drive({ version: 'v3', auth: this.auth });
-      
+
       // Build file ID mapping at startup
       await this.buildFileIdMap();
-      
+
       this.initialized = true;
       console.log('✅ Google Drive service initialized successfully');
     } catch (error) {
@@ -133,7 +142,7 @@ class GoogleDriveService {
 
     return this.retryOperation(async () => {
       const fileId = this.fileIdMap.get(fileName);
-      
+
       if (!fileId) {
         throw new Error(`File not found in Google Drive: ${fileName}`);
       }
@@ -145,7 +154,7 @@ class GoogleDriveService {
 
       const buffer = Buffer.from(response.data);
       this.setCachedFile(fileName, buffer, fileId);
-      
+
       return buffer;
     });
   }
@@ -155,7 +164,7 @@ class GoogleDriveService {
 
     return this.retryOperation(async () => {
       const buffer = typeof content === 'string' ? Buffer.from(content, 'utf-8') : content;
-      
+
       const fileMetadata = {
         name: fileName,
         parents: [googleDriveConfig.folderId],
@@ -225,7 +234,7 @@ class GoogleDriveService {
       }
 
       await this.drive.files.delete({ fileId });
-      
+
       this.fileIdMap.delete(fileName);
       this.invalidateCache(fileName);
 
@@ -250,7 +259,7 @@ class GoogleDriveService {
 
   async fileExists(fileName: string): Promise<boolean> {
     await this.ensureInitialized();
-    
+
     // Check local map first
     if (this.fileIdMap.has(fileName)) {
       return true;
@@ -282,7 +291,7 @@ class GoogleDriveService {
   async checkConnection(): Promise<{ connected: boolean; error?: string }> {
     try {
       await this.ensureInitialized();
-      
+
       // Try to list files as a connection test
       await this.drive.files.list({
         q: `'${googleDriveConfig.folderId}' in parents and trashed=false`,
@@ -307,7 +316,7 @@ class GoogleDriveService {
         return await operation();
       } catch (error: any) {
         lastError = error;
-        
+
         // Don't retry on certain errors
         if (error.code === 404 || error.code === 403) {
           throw error;
