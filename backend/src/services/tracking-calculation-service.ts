@@ -29,7 +29,7 @@ export class TrackingCalculationService {
         // OVER LIMIT: Current price more than 10% above stop buy
         if (currentPrice > stop_buy_price * 1.1) {
             return TrackingStockStatus.OVER_LIMIT;
-       }
+        }
 
         // IN RANGE: Between buy and sell target
         if (currentPrice < sell_target_price) {
@@ -58,9 +58,9 @@ export class TrackingCalculationService {
         trackingStocks: TrackingStock[]
     ): Promise<TrackingStockWithStatus[]> {
         // Get all stock prices from cache
-        const allPrices = this.csvService.getAllStockPrices();
+        const allPrices = await this.csvService.getAllStockPrices();
         const priceMap = new Map<string, StockPrice>();
-        
+
         allPrices.forEach(p => {
             priceMap.set(p.ticker.toUpperCase(), p);
         });
@@ -93,7 +93,7 @@ export class TrackingCalculationService {
      * Get enriched stock by ID
      */
     async getEnrichedTrackingStock(stock_id: string): Promise<TrackingStockWithStatus | null> {
-        const stock = this.csvService.getTrackingStockById(stock_id);
+        const stock = await this.csvService.getTrackingStockById(stock_id);
         if (!stock) return null;
 
         const enriched = await this.enrichTrackingStocksWithMarketData([stock]);
@@ -104,7 +104,7 @@ export class TrackingCalculationService {
      * Get enriched stocks by list ID
      */
     async getEnrichedTrackingStocksByList(list_id: string): Promise<TrackingStockWithStatus[]> {
-        const stocks = this.csvService.getTrackingStocksByList(list_id);
+        const stocks = await this.csvService.getTrackingStocksByList(list_id);
         return await this.enrichTrackingStocksWithMarketData(stocks);
     }
 
