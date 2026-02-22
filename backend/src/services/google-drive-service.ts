@@ -26,9 +26,10 @@ class GoogleDriveService {
   private async initializeAuth(): Promise<void> {
     try {
       // Check if credentials are provided via environment variable (for Render/cloud deployments)
-      if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+      const envCredentials = process.env.GOOGLE_CREDENTIALS || process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+      if (envCredentials) {
         console.log('📝 Using Google service account from environment variable');
-        const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+        const credentials = JSON.parse(envCredentials);
         
         this.auth = new google.auth.GoogleAuth({
           credentials,
