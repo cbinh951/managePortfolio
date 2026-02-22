@@ -491,9 +491,9 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                                 valueColor="text-blue-400"
                             />
                             <MetricCard
-                                label="COST BASIS"
-                                value={formatCurrency(totalStockCost, 'VND', settings.displayCurrency, settings.exchangeRate)}
-                                valueColor="text-slate-300"
+                                label="TOTAL INVESTED"
+                                value={formatCurrency(totalInvested, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                valueColor="text-amber-400"
                             />
                             <MetricCard
                                 label="CASH BALANCE"
@@ -502,6 +502,11 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                             />
 
                             {/* Row 2 */}
+                            <MetricCard
+                                label="COST BASIS"
+                                value={formatCurrency(totalStockCost, 'VND', settings.displayCurrency, settings.exchangeRate)}
+                                valueColor="text-slate-300"
+                            />
                             <MetricCard
                                 label="UNREALIZED P/L"
                                 value={formatCurrency(unrealizedProfit, 'VND', settings.displayCurrency, settings.exchangeRate)}
