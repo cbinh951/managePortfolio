@@ -14,6 +14,7 @@ import SnapshotsTab from '@/components/portfolio/SnapshotsTab';
 import PerformanceTab from '@/components/portfolio/PerformanceTab';
 import EditPortfolioModal from '@/components/portfolio/EditPortfolioModal';
 import AddTransactionModal from '@/components/portfolio/AddTransactionModal';
+import EditCashBalanceModal from '@/components/portfolio/EditCashBalanceModal';
 import EditTransactionModal from '@/components/transaction/EditTransactionModal';
 import EditStockTransactionModal from '@/components/portfolio/EditStockTransactionModal';
 import DeleteTransactionModal from '@/components/transaction/DeleteTransactionModal';
@@ -49,6 +50,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
     const [isAddTransactionModalOpen, setIsAddTransactionModalOpen] = useState(false);
     const [isEditTransactionModalOpen, setIsEditTransactionModalOpen] = useState(false);
     const [isDeleteTransactionModalOpen, setIsDeleteTransactionModalOpen] = useState(false);
+    const [isEditCashBalanceModalOpen, setIsEditCashBalanceModalOpen] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
     const [transactionFilter, setTransactionFilter] = useState('');
 
@@ -331,6 +333,32 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
         await apiClient.deleteTransaction(id);
     };
 
+    const activeCashBalance = isPortfolio ? cashBalance : (data?.cashBalance?.balance || 0);
+
+    const handleEditCashBalance = async (newBalance: number) => {
+        const diff = newBalance - activeCashBalance;
+        if (diff === 0) return;
+
+        try {
+            await apiClient.createTransaction({
+                portfolio_id: isPortfolio ? id : undefined,
+                cash_account_id: !isPortfolio ? id : undefined,
+                date: new Date().toISOString(),
+                type: diff > 0 ? ('DIVIDEND' as any) : TransactionType.FEE,
+                amount: Math.abs(diff),
+                description: 'Manual cash balance adjustment',
+                fee: 0,
+            } as any);
+
+            await loadPortfolioData(true);
+            setIsEditCashBalanceModalOpen(false);
+        } catch (err) {
+            console.error('Failed to adjust cash balance:', err);
+            alert('Failed to update cash balance.');
+            throw err;
+        }
+    };
+
     const handleViewTransactions = (ticker: string) => {
         setTransactionFilter(ticker);
         setActiveTab('transactions');
@@ -499,6 +527,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                                 label="CASH BALANCE"
                                 value={formatCurrency(cashBalance, 'VND', settings.displayCurrency, settings.exchangeRate)}
                                 valueColor="text-emerald-400"
+                                onEdit={() => setIsEditCashBalanceModalOpen(true)}
                             />
 
                             {/* Row 2 */}
@@ -522,6 +551,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                                 label="CURRENT BALANCE"
                                 value={formatCurrency(currentBalance, 'VND', settings.displayCurrency, settings.exchangeRate)}
                                 valueColor="text-white"
+                                onEdit={() => setIsEditCashBalanceModalOpen(true)}
                             />
                             <MetricCard
                                 label="TOTAL WITHDRAWN"
@@ -604,6 +634,15 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
                 </div>
 
                 {/* Modals */}
+                <EditCashBalanceModal
+                    isOpen={isEditCashBalanceModalOpen}
+                    currentBalance={activeCashBalance}
+                    currency={settings.displayCurrency}
+                    exchangeRate={settings.exchangeRate}
+                    onClose={() => setIsEditCashBalanceModalOpen(false)}
+                    onSubmit={handleEditCashBalance}
+                />
+
                 <EditPortfolioModal
                     isOpen={isEditModalOpen}
                     portfolio={
