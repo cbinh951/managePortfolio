@@ -97,7 +97,7 @@ app.use('/api/master', createSupabaseMasterRoutes());
 app.use('/api/asset-analytics', createSupabaseAssetAnalyticsRoutes());
 app.use('/api/stock-price', stockPriceRoutes);
 app.use('/api/tracking', trackingRoutes);
- 
+
 // Serve tracking images as static files
 app.use('/tracking_images', express.static('data/tracking_images'));
 
@@ -204,9 +204,9 @@ app.listen(PORT, () => {
         // Ping immediately on start
         pingKeepAlive();
 
-        // Ping every 10 minutes (Render sleeps after 15 mins)
+        // Ping every 30 minutes (Render sleeps after 15 mins)
         // 14 minutes might be too close if there's drift
-        const INTERVAL_MS = 10 * 60 * 1000;
+        const INTERVAL_MS = 30 * 60 * 1000;
         setInterval(pingKeepAlive, INTERVAL_MS);
     }
 });
