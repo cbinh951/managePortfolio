@@ -204,9 +204,9 @@ app.listen(PORT, () => {
         // Ping immediately on start
         pingKeepAlive();
 
-        // Ping every 30 minutes (Render sleeps after 15 mins)
+        // Ping every 10 minutes (Render sleeps after 15 mins)
         // 14 minutes might be too close if there's drift
-        const INTERVAL_MS = 30 * 60 * 1000;
+        const INTERVAL_MS = 10 * 60 * 1000;
         setInterval(pingKeepAlive, INTERVAL_MS);
     }
 });
